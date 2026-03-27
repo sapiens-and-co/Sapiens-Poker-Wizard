@@ -1270,18 +1270,18 @@ function showAmountInput(actionType) {
     sliderMin = Math.max(W.bb * 2, minRaiseTotal);
     sliderDefault = Math.round((streetState.currentBet + streetState.lastRaiseSize * 1.5) / W.bb) * W.bb;
     if (sliderDefault < sliderMin) sliderDefault = sliderMin;
-  } else { // allin
-    sliderMin = invested + W.bb;
-    sliderDefault = sliderMin * 10;
+  } else { // allin — raiseと同じ範囲条件を使用
+    var minRaiseTotalAI = streetState.currentBet + (streetState.lastRaiseSize || W.bb);
+    sliderMin = Math.max(W.bb * 2, minRaiseTotalAI);
+    sliderDefault = Math.round((streetState.currentBet + (streetState.lastRaiseSize || W.bb) * 1.5) / W.bb) * W.bb;
+    if (sliderDefault < sliderMin) sliderDefault = sliderMin;
   }
   _currentAmountMin = sliderMin;
   var sliderMax;
   if (actionType === 'bet') {
     sliderMax = Math.max(streetState.pot * 2, sliderMin * 2);
-  } else if (actionType === 'raise') {
+  } else { // raise / allin — 共通
     sliderMax = Math.max(sliderMin * 10, sliderMin * 2);
-  } else {
-    sliderMax = sliderMin * 5;
   }
   // 範囲クランプ
   if (sliderDefault < sliderMin) sliderDefault = sliderMin;

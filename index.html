@@ -53,7 +53,8 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
 .hero-banner .hero-mascot{height:40px;width:auto;color:var(--bg);position:absolute;left:16px;top:50%;transform:translateY(-50%);margin-top:1px}
 
 /* footer */
-.bottom-bar{display:flex;align-items:center;justify-content:center;gap:4px;padding:24px 0 0;flex-wrap:nowrap}
+.bottom-bar{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:16px 0 12px;flex-wrap:nowrap}
+.bottom-bar-right{display:flex;align-items:center;gap:4px}
 .bottom-icon{display:flex;align-items:center;justify-content:center;width:22px;height:22px;color:var(--text);text-decoration:none;transition:opacity .15s}
 .bottom-icon:hover,.bottom-icon:active{opacity:.6}
 .bottom-icon svg{width:13px;height:13px;fill:currentColor}
@@ -316,14 +317,17 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
     <div id="wizardNav"></div>
   </div>
   <div class="bottom-bar">
-    <button class="footer-link-btn" onclick="window.open('manual.html','_blank')">Manual</button>
-    <button class="footer-link-btn" onclick="window.open('https://forms.gle/XDw4C5kKdToUyaW5A','_blank')">Feedback</button>
-    <a href="https://x.com/sapiens_and_co" target="_blank" rel="noopener" title="X (Twitter)" class="bottom-icon">
-      <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-    </a>
-    <span class="bottom-icon" onclick="openColorPanel()" title="Color" style="cursor:pointer">
-      <svg viewBox="0 0 24 24"><path d="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10a2.5 2.5 0 0 0 2.5-2.5c0-.61-.23-1.21-.64-1.67A.528.528 0 0 1 14.3 17c.27 0 .5.24.5.5a2.5 2.5 0 0 0 2.5 2.5c3.31 0 6-2.69 6-6 0-4.96-4.49-9-11-9zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
-    </span>
+    <span style="font-size:9px;color:var(--text);opacity:.5">&copy; 2026 Sapiens &amp; Co.</span>
+    <div class="bottom-bar-right">
+      <button class="footer-link-btn" onclick="window.open('manual.html','_blank')">Manual</button>
+      <button class="footer-link-btn" onclick="window.open('https://forms.gle/XDw4C5kKdToUyaW5A','_blank')">Feedback</button>
+      <a href="https://x.com/sapiens_and_co" target="_blank" rel="noopener" title="X (Twitter)" class="bottom-icon">
+        <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      </a>
+      <span class="bottom-icon" onclick="openColorPanel()" title="Color" style="cursor:pointer">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10a2.5 2.5 0 0 0 2.5-2.5c0-.61-.23-1.21-.64-1.67A.528.528 0 0 1 14.3 17c.27 0 .5.24.5.5a2.5 2.5 0 0 0 2.5 2.5c3.31 0 6-2.69 6-6 0-4.96-4.49-9-11-9zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
+      </span>
+    </div>
   </div>
 </div>
 <!-- カスタム数値キーパッド（モバイル: fixed, デスクトップ: #numpadWrapに移動） -->
@@ -712,9 +716,9 @@ function renderStep(step) {
 function renderStep1() {
   var h = '<div class="sec"><div class="sec-title">STEP 1: Basic Info</div>';
   h += '<div class="row"><label>Hand #</label><input type="text" id="s1hand" value="' + W.handNumber + '"></div>';
-  h += '<div class="row"><label>SB</label><input type="text" inputmode="numeric" id="s1sb" value="' + (W.sb||'') + '" placeholder="例 100" onclick="showNumpad(this)"></div>';
-  h += '<div class="row"><label>BB</label><input type="text" inputmode="numeric" id="s1bb" value="' + (W.bb||'') + '" placeholder="例 200" onclick="showNumpad(this)"></div>';
-  h += '<div class="row"><label>Ante</label><input type="text" inputmode="numeric" id="s1ante" value="' + (W.ante||'') + '" placeholder="Anteがない場合は未入力でOK" onclick="showNumpad(this)"></div>';
+  h += '<div class="row"><label>SB</label><input type="text" inputmode="numeric" readonly id="s1sb" value="' + (W.sb||'') + '" placeholder="例 100" onclick="showNumpad(this)"></div>';
+  h += '<div class="row"><label>BB</label><input type="text" inputmode="numeric" readonly id="s1bb" value="' + (W.bb||'') + '" placeholder="例 200" onclick="showNumpad(this)"></div>';
+  h += '<div class="row"><label>Ante</label><input type="text" inputmode="numeric" readonly id="s1ante" value="' + (W.ante||'') + '" placeholder="Anteがない場合は未入力でOK" onclick="showNumpad(this)"></div>';
   h += '</div>';
   h += '<div class="sec"><div class="sec-title">Video / Assets (optional)</div>';
   h += '<div class="row"><label>Video</label><input type="text" id="s1video" value="' + W.videoPath + '" placeholder="video path"></div>';
@@ -885,7 +889,7 @@ function renderStep3() {
   h += '</div>';
 
   h += '<div class="sec"><div class="sec-title">Stack</div>';
-  h += '<div style="display:flex;gap:4px;align-items:center"><input type="text" inputmode="numeric" id="s3stack" value="' + (W.heroStack > 0 ? W.heroStack : '') + '" placeholder="スタックを入力してください" onclick="showNumpad(this)" style="flex:1">';
+  h += '<div style="display:flex;gap:4px;align-items:center"><input type="text" inputmode="numeric" readonly id="s3stack" value="' + (W.heroStack > 0 ? W.heroStack : '') + '" placeholder="スタックを入力してください" onclick="showNumpad(this)" style="flex:1">';
   h += '<button class="btn' + (W.heroStack === 0 && W.skipStack ? ' btn-primary' : '') + '" id="s3skipStack" style="white-space:nowrap;font-size:10px;padding:4px 8px">' + (W.heroStack === 0 && W.skipStack ? '省略中' : '省略する') + '</button></div>';
   h += '</div>';
 
@@ -1295,7 +1299,7 @@ function showAmountInput(actionType) {
 
   var h = '<div class="amount-input-row">';
   h += '<label style="font-size:11px;font-weight:700;flex-shrink:0">' + actionType.toUpperCase() + '</label>';
-  h += '<input type="text" inputmode="numeric" id="amountVal" value="' + sliderDefault + '" onclick="showNumpad(this)">';
+  h += '<input type="text" inputmode="numeric" readonly id="amountVal" value="' + sliderDefault + '" onclick="showNumpad(this)">';
   h += '<button class="btn btn-primary btn-sm" onclick="confirmAmount(\'' + actionType + '\')">OK</button>';
   h += '</div>';
 
@@ -1906,6 +1910,7 @@ function getShowdownOrder(active) {
 }
 
 function renderStep11_showdown() {
+  rederiveFoldsAndAllInsInclusive(W.endedAtStreet || 'river');
   var active = getActivePlayers();
   if (active.length <= 1) {
     // No showdown needed
@@ -1998,6 +2003,7 @@ function setShowdown(seat, type) {
 
 /* ----- STEP 12: Result ----- */
 function renderStep12_result() {
+  rederiveFoldsAndAllInsInclusive(W.endedAtStreet || 'river');
   var active = getActivePlayers();
 
   // Auto-detect if only 1 player left

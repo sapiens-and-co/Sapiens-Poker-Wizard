@@ -3069,7 +3069,7 @@ function applyColors() {
   localStorage.setItem('pokerLoggerColors', JSON.stringify({std:std, fill:fill, bg:bg, fillOpacity:cpFillOpacity}));
   cpBackup = null;
   document.getElementById('colorPanel').style.display = 'none';
-  showToast('Colors saved');
+  show('Colors saved');
 }
 
 function resetColors() {
@@ -3085,7 +3085,7 @@ function resetColors() {
   document.getElementById('cpFillOpacity').value = cpFillOpacity;
   document.getElementById('cpFillOpacityVal').textContent = cpFillOpacity + '%';
   updateCpPreview(CP_DEFAULTS.std, CP_DEFAULTS.fill, CP_DEFAULTS.bg);
-  showToast('Reset to defaults');
+  show('Reset to defaults');
 }
 
 function closeColorPanel() {
@@ -3126,7 +3126,7 @@ function saveFavAt(idx) {
   cpFavs[idx] = {std:std, fill:fill, bg:bg, fillOpacity:cpFillOpacity};
   localStorage.setItem('pokerLoggerFavs', JSON.stringify(cpFavs));
   renderFavSlots();
-  showToast('Saved to Fav ' + (idx+1));
+  show('Saved to Fav ' + (idx+1));
 }
 
 function deleteFav(idx) {
@@ -3134,7 +3134,7 @@ function deleteFav(idx) {
   cpFavs[idx] = null;
   localStorage.setItem('pokerLoggerFavs', JSON.stringify(cpFavs));
   renderFavSlots();
-  showToast('Fav ' + (idx+1) + ' deleted');
+  show('Fav ' + (idx+1) + ' deleted');
 }
 
 function loadFav(idx) {

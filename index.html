@@ -1,0 +1,3179 @@
+<!DOCTYPE html>
+<!--
+  Poker Hand Wizard v0.050
+  Step-by-step guided hand history input
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Poker Hand Wizard v0.050</title>
+<style>
+:root {
+  --bg:#eff6f8; --border:#144d75; --text:#144d75;
+  --accent:#144d75; --dim:#144d75;
+  --accent-bg:rgba(6,59,99,.10); --accent-border:rgba(20,77,117,.35);
+  --std:rgba(6,59,99,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;background:var(--bg);color:var(--text);padding:0 0 56px;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:430px;margin:0 auto;padding:0 6px}
+
+/* デスクトップ：中央カード表示
+   構造: wrap(flex列) > [header|コンテンツ(スクロール)|nav(常時表示)]
+*/
+@media(min-width:500px){
+  body{background:var(--std);padding:16px 0 0;min-height:100vh}
+  .wrap{
+    background:var(--bg);
+    box-shadow:0 2px 28px rgba(20,77,117,.18);
+    border-radius:10px;
+    height:clamp(620px, 88vh, 800px);
+    overflow:hidden;          /* wrap自体はスクロールしない */
+    display:flex;
+    flex-direction:column;
+    padding:0 10px;
+  }
+  .hero-banner{border-radius:10px 10px 0 0;flex-shrink:0}
+  /* リスト・セット選択 */
+  #listView,#playerSetView{flex:1;overflow-y:auto;min-height:0}
+  /* ウィザード：コンテンツだけスクロール */
+  #wizardView{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  #stepBar{flex-shrink:0}
+  #wizardContent{flex:1;overflow-y:auto;min-height:0}
+  #numpadWrap{flex-shrink:0}  /* デスクトップ: numpadをここに移動 */
+  #wizardNav{flex-shrink:0}   /* 常にカード底部に表示 */
+  /* nav: デスクトップでは static (fixed/sticky を解除) */
+  .nav-row{position:static!important;border-radius:0 0 10px 10px;margin:0}
+}
+
+/* header (hero-banner) */
+.hero-banner{background:var(--accent);border:none;border-radius:5px;padding:10px 16px;margin:4px 0 0;position:relative;display:flex;align-items:center;justify-content:center;min-height:60px}
+.hero-banner .hero-title{font-size:18px;font-weight:800;color:var(--bg);letter-spacing:.04em;text-align:center}
+.hero-banner .hero-mascot{height:40px;width:auto;color:var(--bg);position:absolute;left:16px;top:50%;transform:translateY(-50%);margin-top:1px}
+
+/* footer */
+.bottom-bar{display:flex;align-items:center;justify-content:center;gap:4px;padding:24px 0 0;flex-wrap:nowrap}
+.bottom-icon{display:flex;align-items:center;justify-content:center;width:22px;height:22px;color:var(--text);text-decoration:none;transition:opacity .15s}
+.bottom-icon:hover,.bottom-icon:active{opacity:.6}
+.bottom-icon svg{width:13px;height:13px;fill:currentColor}
+.footer-link-btn{background:transparent;border:1px solid var(--accent);border-radius:4px;padding:3px 8px;font-size:10px;font-weight:800;cursor:pointer;color:var(--accent);letter-spacing:.02em;font-family:inherit;line-height:1.3;white-space:nowrap}
+.footer-link-btn:active{background:var(--accent-bg)}
+
+/* step indicator */
+.step-bar{display:flex;align-items:center;justify-content:center;gap:2px;margin:2px 0;padding:1px 0;flex-wrap:nowrap}
+.step-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--dim);background:var(--bg);cursor:pointer;transition:all .2s;flex-shrink:0}
+.step-dot.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.step-dot.done{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.step-dot.skip{opacity:.35}
+.step-dot.editable{border-color:var(--accent);color:var(--accent);cursor:pointer}
+.step-line{width:4px;height:2px;background:var(--border);opacity:.3;flex-shrink:0}
+
+/* sections */
+.sec{background:var(--std);border:1px solid var(--border);border-radius:5px;margin:2px 0;padding:4px 7px}
+.sec-title{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:5px;letter-spacing:.02em}
+
+/* rows / inputs */
+.row{display:flex;gap:4px;margin:2px 0;align-items:center}
+.row label{font-size:10px;color:var(--dim);min-width:54px;font-weight:600;flex-shrink:0}
+.row input,.row select{flex:1;border:1px solid var(--border);border-radius:4px;padding:3px 5px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit;min-width:0}
+.row input:focus,.row select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
+.row input[readonly]{cursor:pointer}
+.amount-input-row input[readonly]{cursor:pointer}
+
+/* buttons */
+.btn{border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;background:var(--bg);color:var(--text)}
+.btn:active{transform:scale(.96)}
+.btn-primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.btn-sm{padding:4px 7px;font-size:11px}
+.btn.selected{background:var(--accent);color:var(--bg)}
+.btn-disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
+
+/* navigation — fixed bottom bar */
+.nav-row{
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:var(--bg);border-top:2px solid var(--accent-border);
+}
+.nav-row-inner{
+  max-width:430px;margin:0 auto;
+  padding:4px 10px calc(4px + env(safe-area-inset-bottom));
+  display:flex;gap:6px;
+}
+.nav-row .btn{flex:1;text-align:center;padding:7px 6px;font-size:12px;font-weight:700}
+
+
+/* player list */
+.player-row{display:flex;gap:3px;align-items:center;margin:1px 0;padding:2px 4px;border-radius:4px;background:var(--bg);border:1px solid var(--accent-border)}
+.player-row .seat-num{width:22px;height:22px;border-radius:50%;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.player-row .pos-label{font-size:10px;font-weight:700;width:30px;text-align:center;flex-shrink:0;color:var(--accent)}
+.player-row input{flex:1;border:1px solid var(--accent-border);border-radius:4px;padding:2px 5px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit}
+.player-row input:focus{outline:none;border-color:var(--accent)}
+#s3stack::placeholder,#s1ante::placeholder{font-size:10px}
+#s1sb:focus,#s1bb:focus,#s1ante:focus,#s3stack:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
+.hero-badge,.btn-badge{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--dim);transition:all .15s;flex-shrink:0}
+.hero-badge.active,.btn-badge.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+/* 座席番号トグル */
+.seat-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;transition:all .15s;user-select:none}
+.seat-num.on{background:var(--accent);color:var(--bg)}
+.seat-num.absent-seat{background:var(--bg);border:1px solid var(--border);color:var(--dim);opacity:.5}
+.player-row.absent{opacity:.4}
+.player-row.absent input{pointer-events:none}
+.plist-count{font-size:11px;font-weight:700;color:var(--accent);text-align:right;margin:0 0 4px}
+
+/* card selector */
+.card-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;margin:4px 0}
+.card-cell{border:1px solid var(--accent-border);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--text);transition:all .15s;line-height:1;user-select:none;padding:6px 0}
+.card-cell.red{color:#c0392b}
+.card-cell.selected{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.card-cell.selected.red{background:#c0392b;color:#fff;border-color:#c0392b}
+.card-cell.used{opacity:.2;pointer-events:none}
+.card-cell.empty-cell{visibility:hidden}
+.card-cell.pending-rank{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.selected-cards{display:flex;gap:6px;margin:3px 0;min-height:50px;align-items:center}
+.selected-card-display{position:relative;width:36px;height:50px;border-radius:4px;font-size:15px;font-weight:700;background:var(--accent);color:var(--bg);box-sizing:border-box;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.selected-card-display.red{background:#c0392b;color:#fff}
+.selected-card-display.empty-card{background:transparent;color:var(--dim);border:2px dashed var(--border);opacity:.5;font-size:14px}
+.selected-card-display.empty-card.active-slot{border-color:var(--accent);opacity:1;box-shadow:0 0 0 1px var(--accent)}
+.selected-card-display .card-remove{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--bg);color:var(--text);border:1.5px solid var(--text);font-size:10px;line-height:13px;text-align:center;cursor:pointer;font-weight:700;box-sizing:border-box}
+
+/* action buttons */
+.action-bar{display:flex;gap:3px;flex-wrap:wrap;margin:2px 0}
+.action-btn{padding:5px 0;font-size:11px;font-weight:700;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;flex:1;min-width:40px;text-align:center;transition:all .15s}
+.action-btn:active{transform:scale(.95)}
+.action-btn.selected{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+
+/* pot display */
+.pot-display{text-align:center;font-size:12px;font-weight:700;padding:3px;background:var(--accent-bg);border-radius:4px;margin:3px 0}
+
+
+/* amount input */
+.amount-input-row{display:flex;gap:4px;margin:3px 0;align-items:center}
+.amount-input-row input{flex:1;border:1px solid var(--border);border-radius:5px;padding:5px 6px;font-size:14px;font-weight:700;background:var(--bg);color:var(--text);font-family:inherit;text-align:right}
+.amount-input-row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
+/* amount slider */
+.amount-slider-wrap{margin:3px 0 2px}
+.amount-slider{
+  width:100%;-webkit-appearance:none;appearance:none;
+  height:4px;border-radius:2px;
+  background:var(--accent-border);outline:none;cursor:pointer;display:block;
+}
+.amount-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:22px;height:22px;border-radius:50%;
+  background:var(--accent);cursor:pointer;
+  border:2px solid var(--bg);box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+.amount-slider::-moz-range-thumb{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--accent);cursor:pointer;
+  border:2px solid var(--bg);box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+.amount-slider-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin:1px 0 0}
+
+/* showdown */
+.sd-player{border:1px solid var(--accent-border);border-radius:5px;padding:5px 7px;margin:2px 0;background:var(--bg)}
+.sd-player .name{font-weight:700;font-size:12px;margin-bottom:3px}
+.sd-buttons{display:flex;gap:3px;margin:3px 0}
+
+/* result */
+.result-player{display:flex;align-items:center;gap:6px;padding:4px 7px;margin:2px 0;border-radius:5px;border:1px solid var(--accent-border);background:var(--bg)}
+.result-player .name{flex:1;font-weight:700;font-size:12px}
+
+/* preview */
+.preview-block{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:10px;margin:6px 0;font-family:"Consolas","Courier New",monospace;font-size:11px;white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto;line-height:1.5}
+
+/* toast */
+.toast{position:fixed;bottom:52px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--bg);padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap;max-width:calc(100vw - 32px);text-align:center}
+.toast.show{opacity:1}
+
+/* hand list */
+.list-header{display:flex;align-items:center;justify-content:space-between;margin:8px 0}
+.list-header h2{font-size:14px;font-weight:700;color:var(--accent)}
+.hand-card{background:var(--bg);border:1px solid var(--accent-border);border-radius:6px;padding:7px 10px;margin:3px 0;cursor:pointer}
+.hand-card:active{background:var(--accent-bg)}
+.hand-card-top{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.hand-card-num{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-bg);padding:2px 6px;border-radius:3px;flex-shrink:0}
+.hand-card-summary{flex:1;font-size:12px;font-weight:600;color:var(--text)}
+.hand-card-date{font-size:10px;color:var(--dim);margin-top:2px}
+.hand-card-actions{display:flex;gap:4px;margin-top:5px}
+.hand-card-actions .btn{flex:1;text-align:center;font-size:11px;padding:5px 4px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--dim);font-size:12px}
+.save-bar{background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:6px;padding:8px 12px;margin:8px 0;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.save-bar .save-label{font-size:11px;font-weight:700;color:var(--accent)}
+.saved-badge{font-size:11px;font-weight:700;color:var(--accent);padding:3px 8px;border-radius:3px;background:var(--accent-bg);border:1px solid var(--accent)}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;margin:16px;max-width:320px;width:100%}
+.modal-box .modal-title{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px}
+.modal-box .modal-msg{font-size:11px;color:var(--text);line-height:1.5;margin-bottom:14px}
+.modal-box .modal-btns{display:flex;gap:6px}
+.modal-box .modal-btns .btn{flex:1;text-align:center;font-size:11px;padding:8px 6px}
+
+/* board display */
+.board-card{width:36px;height:50px;border:2px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;background:var(--bg);flex-direction:column;gap:0}
+.board-card.red{color:#c0392b}
+
+/* board + pot 1行レイアウト（flop以降） */
+.board-pot-row{display:flex;align-items:center;gap:5px;margin:2px 0}
+.board-display-inline{display:flex;gap:2px;flex-shrink:0}
+.board-display-inline .board-card{width:26px;height:36px;font-size:10px}
+.pot-inline{flex:1;text-align:right;font-size:12px;font-weight:700;white-space:nowrap;color:var(--text)}
+
+/* アクション画面プレイヤーリスト */
+.action-player-list{margin:2px 0}
+.player-row.active-turn{border-color:var(--accent);background:var(--accent-bg)}
+.player-row.folded{opacity:.35}
+.apl-info{display:flex;align-items:center;gap:3px;width:var(--info-w,8ch);flex-shrink:0}
+.apl-name{font-size:12px;font-weight:600;white-space:nowrap}
+.hero-mini-cards{display:flex;gap:2px;flex-shrink:0;align-items:center}
+.mini-card{display:flex;align-items:center;gap:1px;border:1px solid var(--border);border-radius:2px;padding:1px 3px;background:var(--bg);font-weight:700;line-height:1}
+.mini-card .mc-rank{font-size:9px;color:var(--text)}
+.mini-card .mc-suit{font-size:8px}
+.mini-card.red .mc-suit,.mini-card.red .mc-rank{color:#c0392b}
+.acted-chain{font-size:9px;font-weight:700;padding:2px 2px;min-width:0;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:left}
+.acted-chain.accent{color:var(--accent)}
+.chain-arrow{margin:0 1px;opacity:.5}
+
+/* player set select view */
+.pset-select-view{padding:4px 0}
+.pset-select-title{font-size:13px;font-weight:700;color:var(--accent);margin:8px 0 4px}
+.pset-new-btn{display:block;width:100%;padding:12px;text-align:center;border:2px dashed var(--border);border-radius:6px;background:var(--bg);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;margin:4px 0 12px;font-family:inherit;transition:all .15s}
+.pset-new-btn:active{background:var(--accent-bg)}
+.pset-card{background:var(--bg);border:1px solid var(--accent-border);border-radius:6px;padding:10px 12px;margin:4px 0}
+.pset-card-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.pset-card-players{font-size:11px;color:var(--dim);margin-bottom:8px;line-height:1.5}
+.pset-card-actions{display:flex;gap:4px}
+.pset-card-actions .btn{flex:1;text-align:center;font-size:11px;padding:5px 4px}
+.pset-save-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:8px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:5px;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;margin:8px 0 0;font-family:inherit;transition:all .15s}
+.pset-save-btn:active{background:var(--std)}
+.pset-name-input-row{display:flex;gap:6px;margin:8px 0;align-items:center}
+.pset-name-input-row input{flex:1;border:1px solid var(--border);border-radius:5px;padding:7px 8px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit}
+.pset-name-input-row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
+
+/* ===== Custom Numeric Keypad ===== */
+#numpad{
+  display:none;position:fixed;
+  bottom:calc(44px + env(safe-area-inset-bottom,0px));
+  left:50%;transform:translateX(-50%);
+  width:min(430px,100vw);
+  background:var(--bg);
+  border-top:2px solid var(--accent-border);
+  border-bottom:1px solid var(--accent-border);
+  z-index:195;padding:3px 6px;
+}
+#numpad.show{display:block}
+.nk-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin:1px 0}
+.nk-btn{
+  padding:5px 2px;font-size:13px;font-weight:700;
+  border:1px solid var(--border);border-radius:4px;
+  background:var(--bg);color:var(--text);
+  cursor:pointer;text-align:center;
+  user-select:none;transition:background .1s;
+}
+.nk-btn:active{background:var(--accent-bg)}
+.nk-btn.nk-ok{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.nk-btn.nk-del{font-size:12px}
+/* デスクトップ: numpadもカード内下部に固定 */
+@media(min-width:500px){
+  #numpad{
+    position:static;width:auto;transform:none;
+    border:none;border-top:1px solid var(--accent-border);
+    padding:6px 4px 4px;display:none;
+  }
+  #numpad.show{display:block}
+  #numpadWrap{flex-shrink:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero-banner">
+    <svg class="hero-mascot" viewBox="4170 4190 300 255" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" fill-rule="evenodd" d="M4418,4326c-5.5.27-10.01,1.7-14-1-6.36-1.99-7.87-6.96-12-11-.16-8.42,1.4-14,3-20,4.79-2.92,10.38-5.41,16-8,.16-11.94,13.49-26.38,28-19,4.8,2.44,7.38,8.27,11,12l-1,13c7.19,3.63,20.4,16.52,11,29-3.58,11.02-16.77,9.99-28,8-.65,1.87-.95,3.91-1,7,7.67,8.05,9.67,12.36,6,26-8.98,4.61-20.35,8.49-31,2-2.75-1.68-5.85-5.92-9-7l-20-1c-.91,1.08.08.08-1,1,7.01,32.42,5.29,83.07-27,84-4.23-4.07-7.92-7.77-12-12,.2-6.54,2.83-6.64,4-10l-1-10c4.37-2.54,15.13-5.89,17-11,.98-4.08-4.09-14.06-6-19-2.89-7.48-4.03-14.6-8-21-4.89-7.89-13.21-15.15-15-26-.42-2.54,2.44-10.29,3-13,1.91-9.19-2.45-16.83-11-17-8.56,7-23.09,13.9-27,25,7.27,4.64,18.53,15.99,21,25,2.84,10.35-3.78,17.12-6,23-4.66,12.38-7.63,26.63-8,42,6.29,2.71,27.96,10.38,30,16,.96,1.42.98,3.27,1,6-12.57,6.15-24.54,1.01-41,1-6.29,0-17.57,1.67-22-1-1.42-.85-1.92-3.75-3-5,1.67-7.07,6.22-11.5,8-17,2.76-8.55-2.49-21.23-4-28-1.28-5.74,2.39-12.6,1-15-1.33-4.27-4-6.34-9-7-1.81,3.87-3.25,10.62-6,14-4.32,5.31-15.32,7.08-22,10-8.31,3.63-13.91,9.27-20,15,2.61,7.71,3.03,13.93,9,18,4.17,2.85,7.89,1.99,10,7,2.45,3.38,1,4.71,0,9h-2c-8.25,5.84-32.18-4-36-9l-6-17c-3.18-4.67-13.5-6.86-11-17,2-8.12,9.41-6.3,16-10l18-19c6.95-4.68,13.33-1.48,14-13-1.33-4-2.67-8-4-12-23.39-41.09,26.84-74.61,49-91,7.61-5.63,13.78-13.93,22-19l16-7h5c4.14-2.08,5.35-10.16,8-14l12-11c7.79-4.78,24.69-5.28,33,0,2.41,1.53,4.54,5.44,7,7,4.8,3.03,8.8,1.22,11,7,1.58,2.48-.63,7.84,1,11l7,5c2.06,4.56,1.3,23.9,0,29-8.76,5.13-17.82,2.5-30,2-2.05,3.24-2.99,4.03-3,10,5.91,9.66-2.71,29.29,1,41,.8,2.52,3.12,4.7,4,8,8.12,4.19,44.71,24.61,53,9,.8-1.18.77-1.68,1-4Z"/></svg>
+    <div class="hero-title">Sapiens Poker Wizard</div>
+    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--bg);letter-spacing:.05em">v0.050</span>
+  </div>
+
+  <!-- ハンドリスト画面 -->
+  <div id="listView">
+    <div class="list-header">
+      <h2>Hand Records</h2>
+      <button class="btn btn-primary btn-sm" onclick="startNewHand()">+ New Hand</button>
+    </div>
+    <div id="exportBar" style="display:none;margin:4px 0"><button class="btn btn-sm" onclick="exportAllHands()" style="width:100%">ハンド記録を書き出し</button></div>
+    <div id="handListContainer"></div>
+  </div>
+
+  <!-- プレイヤーセット選択画面 -->
+  <div id="playerSetView" style="display:none">
+    <div class="pset-select-view" id="playerSetContent"></div>
+  </div>
+
+  <!-- ウィザード画面 -->
+  <div id="wizardView" style="display:none">
+    <div class="step-bar" id="stepBar"></div>
+    <div id="wizardContent"></div>
+    <div id="numpadWrap"></div>
+    <div id="wizardNav"></div>
+  </div>
+  <div class="bottom-bar">
+    <button class="footer-link-btn" onclick="window.open('manual.html','_blank')">Manual</button>
+    <button class="footer-link-btn" onclick="window.open('https://forms.gle/XDw4C5kKdToUyaW5A','_blank')">Feedback</button>
+    <a href="https://x.com/sapiens_and_co" target="_blank" rel="noopener" title="X (Twitter)" class="bottom-icon">
+      <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    </a>
+    <span class="bottom-icon" onclick="openColorPanel()" title="Color" style="cursor:pointer">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10a2.5 2.5 0 0 0 2.5-2.5c0-.61-.23-1.21-.64-1.67A.528.528 0 0 1 14.3 17c.27 0 .5.24.5.5a2.5 2.5 0 0 0 2.5 2.5c3.31 0 6-2.69 6-6 0-4.96-4.49-9-11-9zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
+    </span>
+  </div>
+</div>
+<!-- カスタム数値キーパッド（モバイル: fixed, デスクトップ: #numpadWrapに移動） -->
+<div id="numpad">
+  <div class="nk-grid">
+    <div class="nk-btn" onclick="nkPress('1')">1</div>
+    <div class="nk-btn" onclick="nkPress('2')">2</div>
+    <div class="nk-btn" onclick="nkPress('3')">3</div>
+    <div class="nk-btn" onclick="nkPress('4')">4</div>
+    <div class="nk-btn" onclick="nkPress('5')">5</div>
+    <div class="nk-btn" onclick="nkPress('00')">00</div>
+    <div class="nk-btn nk-del" onclick="nkPress('del')">⌫</div>
+  </div>
+  <div class="nk-grid">
+    <div class="nk-btn" onclick="nkPress('6')">6</div>
+    <div class="nk-btn" onclick="nkPress('7')">7</div>
+    <div class="nk-btn" onclick="nkPress('8')">8</div>
+    <div class="nk-btn" onclick="nkPress('9')">9</div>
+    <div class="nk-btn" onclick="nkPress('0')">0</div>
+    <div class="nk-btn" onclick="nkPress('000')">000</div>
+    <div class="nk-btn nk-ok" onclick="hideNumpad()">OK</div>
+  </div>
+</div>
+<!-- カラーパネル -->
+<div id="colorPanel" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:2000;flex-direction:column">
+  <div id="cpPreview" style="flex:1;overflow:auto;padding:10px 12px">
+    <div style="max-width:480px;margin:0 auto">
+      <div id="cpSampleHeader" style="border-radius:5px;padding:8px 12px;text-align:center;font-weight:800;font-size:14px">Sapiens Poker Wizard</div>
+      <div id="cpSampleCard" style="border:1px solid;border-radius:5px;padding:8px 10px;margin:4px 0">
+        <div style="font-weight:800;font-size:14px">Hand Records</div>
+        <div id="cpSampleHand1" style="border:1px solid;border-radius:5px;padding:6px 8px;margin:3px 0;font-size:12px;display:flex;align-items:center;gap:8px">
+          <span style="font-weight:700;flex-shrink:0">#01</span><span style="font-size:11px;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">#01 BTN | A&#9824;K&#9829; | 6max | Win 300</span><span id="cpSampleEditBtn" style="border:1px solid;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;flex-shrink:0">Edit</span>
+        </div>
+        <div id="cpSampleHand2" style="border:1px solid;border-radius:5px;padding:6px 8px;margin:3px 0;font-size:12px;display:flex;align-items:center;gap:8px">
+          <span style="font-weight:700;flex-shrink:0">#02</span><span style="font-size:11px;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">#02 CO | Q&#9830;J&#9830; | 6max | Lose -500</span><span id="cpSampleEditBtn2" style="border:1px solid;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;flex-shrink:0">Edit</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <div id="cpSampleActBtn" style="border-radius:5px;padding:5px 14px;font-weight:700;font-size:11px">+ New Hand</div>
+          <div id="cpSampleActBtn2" style="border:1px solid;border-radius:5px;padding:4px 14px;font-weight:700;font-size:11px">Export</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="cpControls" style="flex:0 0 auto;padding:12px 16px 20px;border-top:1px solid">
+    <div style="max-width:480px;margin:0 auto">
+      <div style="display:flex;justify-content:center;gap:16px;margin-bottom:6px">
+        <div style="text-align:center">
+          <div style="position:relative;width:52px;height:52px;margin:0 auto">
+            <div id="cpSwatch-std" style="width:52px;height:52px;border-radius:50%;border:2px solid"></div>
+            <input type="color" id="cpInput-std" style="position:absolute;top:0;left:0;width:52px;height:52px;opacity:0;cursor:pointer" onchange="onCpChange('std',this.value)" oninput="onCpChange('std',this.value)">
+          </div>
+          <div style="font-size:9px;font-weight:700;margin-top:3px">基調色</div>
+          <div id="cpHex-std" style="font-family:monospace;font-size:11px;font-weight:700"></div>
+        </div>
+        <div style="text-align:center">
+          <div style="position:relative;width:52px;height:52px;margin:0 auto">
+            <div id="cpSwatch-fill" style="width:52px;height:52px;border-radius:50%;border:2px solid"></div>
+            <input type="color" id="cpInput-fill" style="position:absolute;top:0;left:0;width:52px;height:52px;opacity:0;cursor:pointer" onchange="onCpChange('fill',this.value)" oninput="onCpChange('fill',this.value)">
+          </div>
+          <div style="font-size:9px;font-weight:700;margin-top:3px">中間色</div>
+          <div id="cpHex-fill" style="font-family:monospace;font-size:11px;font-weight:700"></div>
+        </div>
+        <div style="text-align:center">
+          <div style="position:relative;width:52px;height:52px;margin:0 auto">
+            <div id="cpSwatch-bg" style="width:52px;height:52px;border-radius:50%;border:2px solid"></div>
+            <input type="color" id="cpInput-bg" style="position:absolute;top:0;left:0;width:52px;height:52px;opacity:0;cursor:pointer" onchange="onCpChange('bg',this.value)" oninput="onCpChange('bg',this.value)">
+          </div>
+          <div style="font-size:9px;font-weight:700;margin-top:3px">背景色</div>
+          <div id="cpHex-bg" style="font-family:monospace;font-size:11px;font-weight:700"></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:10px;max-width:280px;margin-left:auto;margin-right:auto">
+        <span style="font-size:9px;font-weight:700;white-space:nowrap">中間色 透明度</span>
+        <input type="range" id="cpFillOpacity" min="5" max="100" value="10" style="flex:1;height:4px;accent-color:currentColor;cursor:pointer" oninput="onFillOpacityChange(this.value)">
+        <span id="cpFillOpacityVal" style="font-family:monospace;font-size:11px;font-weight:700;min-width:32px;text-align:right">10%</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;justify-content:center;flex-wrap:wrap">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.06em">FAV</div>
+        <div id="cpFavSlots" style="display:flex;gap:5px"></div>
+      </div>
+      <div id="cpActionBtns" style="display:flex;gap:6px;justify-content:center">
+        <button id="cpApplyBtn" onclick="applyColors()" style="padding:7px 20px;border:none;border-radius:5px;font-weight:700;font-size:12px;cursor:pointer">Apply</button>
+        <button id="cpResetBtn" onclick="resetColors()" style="padding:7px 20px;border:1px solid;border-radius:5px;font-weight:700;font-size:12px;cursor:pointer">Reset</button>
+        <button id="cpCloseBtn" onclick="closeColorPanel()" style="padding:7px 20px;border:1px solid;border-radius:5px;font-weight:700;font-size:12px;cursor:pointer">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+<div id="unsavedModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">未保存のハンドがあります</div>
+    <div class="modal-msg" id="unsavedModalMsg">このハンドはまだ保存されていません。</div>
+    <div class="modal-btns">
+      <button class="btn btn-primary" id="unsavedModalSave">保存する</button>
+      <button class="btn" id="unsavedModalDiscard">破棄して進む</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== APP STATE ========== */
+var viewMode = 'list'; // 'list' | 'wizard'
+var handSaved = false; // 保存済みフラグ
+var editingHandId = null; // 編集中のハンドID（新規ならnull）
+var STORAGE_KEY = 'pokerWizardHands_v1';
+var autoReplayQueue = null; // アクション編集後の自動再生キュー
+var silentReplay = false;   // trueの間はdoActionが再描画しない
+
+/* ========== STATE ========== */
+var W = {
+  step: 1,
+  handNumber: '01',
+  sb: 0, bb: 0, ante: 0,
+  videoPath: '', ifbPath: '', ifiPath: '',
+  playerCount: 6,
+  btnSeat: 1,
+  players: [],
+  heroSeat: null,
+  heroStack: 0,
+  skipStack: false,
+  heroCards: [],
+  streets: {
+    preflop: { actions: [] },
+    flop:    { board: [], actions: [] },
+    turn:    { board: [], actions: [] },
+    river:   { board: [], actions: [] }
+  },
+  showdowns: [],
+  results: [],
+  usedCards: {},
+  foldedSeats: {},
+  allInSeats: {},
+  handEnded: false,
+  endedAtStreet: null
+};
+
+var TOTAL_STEPS = 13;
+
+/* ========== POSITION TABLE ========== */
+var POS_NAMES = {
+  10:['BTN','SB','BB','UTG','+1','MP1','MP2','LJ','HJ','CO'],
+  9: ['BTN','SB','BB','UTG','+1','MP','LJ','HJ','CO'],
+  8: ['BTN','SB','BB','UTG','+1','LJ','HJ','CO'],
+  7: ['BTN','SB','BB','UTG','+1','HJ','CO'],
+  6: ['BTN','SB','BB','UTG','+1','CO'],
+  5: ['BTN','SB','BB','UTG','CO'],
+  4: ['BTN','SB','BB','UTG'],
+  3: ['BTN','SB','BB'],
+  2: ['BTN','BB']
+};
+
+var SUITS = [{k:'s',sym:'\u2660',color:'black'},{k:'c',sym:'\u2663',color:'black'},{k:'h',sym:'\u2665',color:'red'},{k:'d',sym:'\u2666',color:'red'}];
+var RANK_DISPLAY = {A:'A','2':'2','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8','9':'9',T:'10',J:'J',Q:'Q',K:'K'};
+
+/* ========== UTILITIES ========== */
+function $(id){ return document.getElementById(id); }
+function show(msg){ var t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},1800); }
+
+window.addEventListener('beforeunload', function(e) {
+  if (!handSaved && viewMode === 'wizard' && W.step > 1) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+function assignPositions(count, btnSeat, seats) {
+  var names = POS_NAMES[Math.min(Math.max(count,2),10)] || POS_NAMES[2];
+  var sorted = seats.slice().sort(function(a,b){
+    return ((a - btnSeat + 10) % 10) - ((b - btnSeat + 10) % 10);
+  });
+  var map = {};
+  for (var i = 0; i < sorted.length; i++) {
+    map[sorted[i]] = names[i] || '';
+  }
+  return map;
+}
+
+function getActivePlayers() {
+  return W.players.filter(function(p){ return p.active !== false && !W.foldedSeats[p.seat]; });
+}
+
+function cardDisplay(c) {
+  if (!c || c.length < 2) return '';
+  var r = c.charAt(0), s = c.charAt(1);
+  return RANK_DISPLAY[r] + ({s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'}[s] || s);
+}
+
+function cardColor(c) {
+  if (!c) return '';
+  var s = c.charAt(c.length - 1);
+  return (s === 'h' || s === 'd') ? 'red' : '';
+}
+
+function cardToMemo(c) {
+  if (!c) return '';
+  var r = c.charAt(0), s = c.charAt(1);
+  return (r === 'T' ? '10' : r) + s;
+}
+
+/* ========== STEP BAR ========== */
+function renderStepBar() {
+  var isEdit = !!editingHandId;
+  var html = '';
+  for (var i = 1; i <= TOTAL_STEPS; i++) {
+    if (i > 1) html += '<div class="step-line"></div>';
+    var cls = 'step-dot';
+    if (i === W.step) cls += ' active';
+    else if (i < W.step) cls += ' done';
+    else if (isEdit) cls += ' editable';
+    if (shouldSkipStep(i)) cls += ' skip';
+    html += '<div class="' + cls + '" data-step="' + i + '">' + i + '</div>';
+  }
+  $('stepBar').innerHTML = html;
+  var dots = $('stepBar').querySelectorAll('.step-dot');
+  for (var j = 0; j < dots.length; j++) {
+    dots[j].addEventListener('click', function(){
+      var s = parseInt(this.getAttribute('data-step'));
+      if (shouldSkipStep(s)) return;
+      if (isEdit || s < W.step) navigateTo(s);
+    });
+  }
+}
+
+function shouldSkipStep(step) {
+  if (!W.handEnded) return false;
+  // Map streets to action steps (board steps are one before)
+  // preflop=4, flop_board=5, flop_action=6, turn_board=7, turn_action=8, river_board=9, river_action=10
+  var streetActionStepMap = {preflop:4, flop:6, turn:8, river:10};
+  var endedActionStep = streetActionStepMap[W.endedAtStreet] || 99;
+  // Skip all board/action steps after the street where hand ended
+  if (step >= 5 && step <= 10 && step > endedActionStep) return true;
+  // Skip showdown if only 1 player remains
+  if (step === 11) {
+    var savedFolded = JSON.parse(JSON.stringify(W.foldedSeats));
+    var savedAllIn = JSON.parse(JSON.stringify(W.allInSeats));
+    rederiveFoldsAndAllInsInclusive(W.endedAtStreet || 'river');
+    var active = getActivePlayers();
+    W.foldedSeats = savedFolded;
+    W.allInSeats = savedAllIn;
+    if (active.length <= 1) return true;
+  }
+  return false;
+}
+
+/* ========== NAVIGATION ========== */
+function navigateTo(step) {
+  hideNumpad();
+  W.step = step;
+  renderStepBar();
+  renderStep(step);
+  renderNav();
+  window.scrollTo(0, 0);
+}
+
+// トーストなしのバリデーション（Nav グレーアウト判定用）
+function canAdvance(step) {
+  switch(step) {
+    case 1:
+      return (W.bb > 0) && (W.sb > 0);
+    case 2:
+      var active = W.players.filter(function(p){ return p.active !== false; });
+      return active.length >= 2 && W.heroSeat !== null &&
+             !active.some(function(p){ return !p.name || !p.name.trim(); });
+    case 3:
+      return (W.skipStack || W.heroStack > 0) && (W.heroCards.length === 2);
+    case 4:
+      return streetState && streetState.done;
+    case 5:
+      return W.streets.flop.board.length >= 3;
+    case 6:
+      return streetState && streetState.street === 'flop' && streetState.done;
+    case 7:
+      return W.streets.turn.board.length >= 1;
+    case 8:
+      return streetState && streetState.street === 'turn' && streetState.done;
+    case 9:
+      return W.streets.river.board.length >= 1;
+    case 10:
+      return streetState && streetState.street === 'river' && streetState.done;
+    case 12:
+      return W.results.length > 0;
+    default:
+      return true;
+  }
+}
+
+function renderNav() {
+  var html = '<div class="nav-row"><div class="nav-row-inner">';
+  if (W.step === 1) {
+    html += '<button class="btn" onclick="goToHandList()">一覧に戻る</button>';
+    var ok = canAdvance(W.step);
+    html += '<button class="btn btn-primary' + (ok ? '' : ' btn-disabled') + '" onclick="goNext()">次に進む</button>';
+  } else if (W.step === TOTAL_STEPS) {
+    html += '<button class="btn" onclick="navigateTo(getPrevStep(' + W.step + '))">前に戻る</button>';
+    html += '<button class="btn" onclick="goToHandList()">一覧に戻る</button>';
+    html += '<button class="btn btn-primary" onclick="startNewHand()">次のハンドを入力</button>';
+  } else {
+    html += '<button class="btn" onclick="navigateTo(getPrevStep(' + W.step + '))">前に戻る</button>';
+    var ok = canAdvance(W.step);
+    html += '<button class="btn btn-primary' + (ok ? '' : ' btn-disabled') + '" onclick="goNext()">次に進む</button>';
+  }
+  html += '</div></div>';
+  $('wizardNav').innerHTML = html;
+}
+
+function getNextStep(current) {
+  var next = current + 1;
+  while (next <= TOTAL_STEPS && shouldSkipStep(next)) next++;
+  return next;
+}
+
+function getPrevStep(current) {
+  var prev = current - 1;
+  while (prev >= 1 && shouldSkipStep(prev)) prev--;
+  return prev;
+}
+
+function goNext() {
+  if (!validateStep(W.step)) return;
+  var next = getNextStep(W.step);
+  if (next <= TOTAL_STEPS) navigateTo(next);
+}
+
+/* ========== VALIDATION ========== */
+function validateStep(step) {
+  switch(step) {
+    case 1:
+      if (!W.bb || W.bb <= 0) { show('BB is required'); return false; }
+      if (!W.sb || W.sb <= 0) { show('SB is required'); return false; }
+      return true;
+    case 2:
+      var activePlayers = W.players.filter(function(p){ return p.active !== false; });
+      if (activePlayers.length < 2) { show('At least 2 players'); return false; }
+      if (W.heroSeat === null) { show('Select Hero'); return false; }
+      var hasEmpty = activePlayers.some(function(p){ return !p.name || !p.name.trim(); });
+      if (hasEmpty) { show('着席中の全プレイヤーに名前を入力してください'); return false; }
+      return true;
+    case 3:
+      if (!W.skipStack && (!W.heroStack || W.heroStack <= 0)) { show('Enter hero stack'); return false; }
+      if (W.heroCards.length !== 2) { show('Select 2 cards'); return false; }
+      return true;
+    case 4:
+      if (!streetState || !streetState.done) { show('アクションを完了してください'); return false; }
+      return true;
+    case 5: // Flop board
+      if (W.streets.flop.board.length < 3) { show('ボードカードを選択してください'); return false; }
+      W.streets.flop.board.forEach(function(c){ W.usedCards[c] = 'board_flop'; });
+      return true;
+    case 6: // Flop actions
+      if (!streetState || streetState.street !== 'flop' || !streetState.done) { show('アクションを完了してください'); return false; }
+      return true;
+    case 7: // Turn board
+      if (W.streets.turn.board.length < 1) { show('ボードカードを選択してください'); return false; }
+      W.streets.turn.board.forEach(function(c){ W.usedCards[c] = 'board_turn'; });
+      return true;
+    case 8: // Turn actions
+      if (!streetState || streetState.street !== 'turn' || !streetState.done) { show('アクションを完了してください'); return false; }
+      return true;
+    case 9: // River board
+      if (W.streets.river.board.length < 1) { show('ボードカードを選択してください'); return false; }
+      W.streets.river.board.forEach(function(c){ W.usedCards[c] = 'board_river'; });
+      return true;
+    case 10: // River actions
+      if (!streetState || streetState.street !== 'river' || !streetState.done) { show('アクションを完了してください'); return false; }
+      return true;
+    case 11: // Showdown
+      return true;
+    case 12: // Result
+      if (W.results.length === 0) { show('Select winner'); return false; }
+      return true;
+    default:
+      return true;
+  }
+}
+
+/* ========== RENDER STEPS ========== */
+function renderStep(step) {
+  var fn = [null, renderStep1, renderStep2, renderStep3, renderStep4,
+    renderStep5_board, renderStep6_flopAction, renderStep7_board, renderStep8_turnAction,
+    renderStep9_board, renderStep10_riverAction, renderStep11_showdown, renderStep12_result, renderStep13_summary];
+  if (fn[step]) fn[step]();
+}
+
+/* ----- STEP 1: Basic Info ----- */
+function renderStep1() {
+  var h = '<div class="sec"><div class="sec-title">STEP 1: Basic Info</div>';
+  h += '<div class="row"><label>Hand #</label><input type="text" id="s1hand" value="' + W.handNumber + '"></div>';
+  h += '<div class="row"><label>SB</label><input type="text" inputmode="numeric" id="s1sb" value="' + (W.sb||'') + '" placeholder="例 100" onclick="showNumpad(this)"></div>';
+  h += '<div class="row"><label>BB</label><input type="text" inputmode="numeric" id="s1bb" value="' + (W.bb||'') + '" placeholder="例 200" onclick="showNumpad(this)"></div>';
+  h += '<div class="row"><label>Ante</label><input type="text" inputmode="numeric" id="s1ante" value="' + (W.ante||'') + '" placeholder="Anteがない場合は未入力でOK" onclick="showNumpad(this)"></div>';
+  h += '</div>';
+  h += '<div class="sec"><div class="sec-title">Video / Assets (optional)</div>';
+  h += '<div class="row"><label>Video</label><input type="text" id="s1video" value="' + W.videoPath + '" placeholder="video path"></div>';
+  h += '<div class="row"><label>IFB</label><input type="text" id="s1ifb" value="' + W.ifbPath + '" placeholder="interface base path"></div>';
+  h += '<div class="row"><label>IFI</label><input type="text" id="s1ifi" value="' + W.ifiPath + '" placeholder="interface info path"></div>';
+  h += '</div>';
+  $('wizardContent').innerHTML = h;
+
+  // auto-save on change
+  var fields = ['s1hand','s1sb','s1bb','s1ante','s1video','s1ifb','s1ifi'];
+  fields.forEach(function(id){
+    var el = $(id);
+    if (el) el.addEventListener('input', saveStep1);
+  });
+
+  // SBに自動フォーカス+numpad表示
+  setTimeout(function(){
+    var sbEl = $('s1sb');
+    if (sbEl && !sbEl.value) {
+      sbEl.focus();
+      showNumpad(sbEl);
+    }
+  }, 200);
+}
+
+function saveStep1() {
+  W.handNumber = $('s1hand').value || '01';
+  W.sb = parseInt($('s1sb').value) || 0;
+  W.bb = parseInt($('s1bb').value) || 0;
+  W.ante = parseInt($('s1ante').value) || 0;
+  W.videoPath = $('s1video').value || '';
+  W.ifbPath = $('s1ifb').value || '';
+  W.ifiPath = $('s1ifi').value || '';
+  renderNav();
+}
+
+/* ----- STEP 2: Table Setup ----- */
+function renderStep2() {
+  // BTN Seat セレクターを廃止、プレイヤー行に統合
+  var h = '<div class="sec">';
+  h += '<div class="sec-title">STEP 2: Table Setup';
+  h += '<span style="float:right;font-size:10px;font-weight:400;color:var(--dim)">着席状況・BTN・HERO を行内で選択</span>';
+  h += '</div>';
+  h += '<div id="playerList"></div>';
+  h += '<button class="pset-save-btn" onclick="saveCurrentPlayersAsSet()">💾 このプレイヤーをセットとして保存</button>';
+  h += '</div>';
+
+  $('wizardContent').innerHTML = h;
+  renderPlayerList();
+}
+
+function buildPlayerList() {
+  // 既存データを保持
+  var old = {};
+  W.players.forEach(function(p){
+    old[p.seat] = { name: p.name, active: p.active !== false, isHero: p.isHero };
+  });
+
+  // 常に10席固定で構築
+  W.players = [];
+  for (var seat = 1; seat <= 10; seat++) {
+    var prev = old[seat];
+    W.players.push({
+      seat: seat,
+      name: prev ? (prev.name || '') : '',
+      active: prev ? prev.active : (seat <= 6), // 初期値: 1-6着席
+      position: '',
+      isHero: prev ? prev.isHero : (seat === W.heroSeat)
+    });
+  }
+  updatePositions();
+}
+
+function updatePositions() {
+  var active = W.players.filter(function(p){ return p.active !== false; });
+  if (active.length === 0) return;
+  var seats = active.map(function(p){ return p.seat; });
+  W.playerCount = active.length;
+  var posMap = assignPositions(active.length, W.btnSeat, seats);
+  W.players.forEach(function(p){
+    p.position = (p.active !== false) ? (posMap[p.seat] || '') : '';
+  });
+}
+
+function renderPlayerList() {
+  if (W.players.length === 0) buildPlayerList();
+
+  var el = $('playerList');
+  if (!el) return;
+
+  var activeCount = W.players.filter(function(p){ return p.active !== false; }).length;
+  var h = '<div class="plist-count">' + activeCount + ' / 10 着席</div>';
+
+  W.players.forEach(function(p, idx){
+    var absent = p.active === false;
+    var isBtn  = W.btnSeat === p.seat;
+    h += '<div class="player-row' + (absent ? ' absent' : '') + '">';
+    // ① 席番号がトグルスイッチ兼用
+    h += '<div class="seat-num' + (absent ? ' absent-seat' : ' on') + '" onclick="togglePlayerSeat(' + idx + ')" style="cursor:pointer">' + p.seat + '</div>';
+    // ③ BTN バッジ（離席時は非表示だがスペース確保）
+    h += '<div class="btn-badge' + (isBtn ? ' active' : '') + '" onclick="' + (absent ? '' : 'setBtnSeat(' + idx + ')') + '" style="' + (absent ? 'visibility:hidden;pointer-events:none' : '') + '">BTN</div>';
+    // ④ HERO バッジ（離席時は非表示だがスペース確保）
+    h += '<div class="hero-badge' + (p.isHero ? ' active' : '') + '" data-idx="' + idx + '" style="' + (absent ? 'visibility:hidden;pointer-events:none' : '') + '">HERO</div>';
+    // ポジション
+    h += '<div class="pos-label">' + (absent ? '' : p.position) + '</div>';
+    // 名前入力
+    h += '<input type="text" data-idx="' + idx + '" value="' + escapeHtml(p.name || '') + '" placeholder="Seat ' + p.seat + '"' + (absent ? ' disabled' : '') + '>';
+    h += '</div>';
+  });
+  el.innerHTML = h;
+
+  // Name inputs（離席は除外）
+  var inputs = el.querySelectorAll('input:not([disabled])');
+  for (var i = 0; i < inputs.length; i++) {
+    inputs[i].addEventListener('input', function(){
+      var idx = parseInt(this.getAttribute('data-idx'));
+      W.players[idx].name = this.value;
+      renderNav();
+    });
+  }
+
+  // Hero badges
+  var badges = el.querySelectorAll('.hero-badge');
+  for (var i = 0; i < badges.length; i++) {
+    badges[i].addEventListener('click', function(){
+      var idx = parseInt(this.getAttribute('data-idx'));
+      W.players.forEach(function(p){ p.isHero = false; });
+      W.players[idx].isHero = true;
+      W.heroSeat = W.players[idx].seat;
+      renderPlayerList();
+      renderNav();
+    });
+  }
+}
+
+function togglePlayerSeat(idx) {
+  W.players[idx].active = !W.players[idx].active;
+  if (!W.players[idx].active) {
+    // HERO解除
+    if (W.players[idx].isHero) { W.players[idx].isHero = false; W.heroSeat = null; }
+    // BTNが離席した場合、最初の着席者に自動移動
+    if (W.btnSeat === W.players[idx].seat) {
+      var next = W.players.find(function(p){ return p.active !== false && p.seat !== W.players[idx].seat; });
+      W.btnSeat = next ? next.seat : 1;
+    }
+  }
+  updatePositions();
+  renderPlayerList();
+}
+
+function setBtnSeat(idx) {
+  W.btnSeat = W.players[idx].seat;
+  updatePositions();
+  renderPlayerList();
+}
+
+/* ----- STEP 3: Hero Info ----- */
+function renderStep3() {
+  var hero = W.players.find(function(p){ return p.isHero; });
+  var heroName = hero ? hero.name : 'Hero';
+
+  var h = '<div class="sec"><div class="sec-title">STEP 3: Hero Info (' + heroName + ')</div>';
+  h += '</div>';
+
+  h += '<div class="sec"><div class="sec-title">Hero Cards</div>';
+  h += '<div class="selected-cards" id="s3selected"></div>';
+  h += '<div id="s3cards"></div>';
+  h += '</div>';
+
+  h += '<div class="sec"><div class="sec-title">Stack</div>';
+  h += '<div style="display:flex;gap:4px;align-items:center"><input type="text" inputmode="numeric" id="s3stack" value="' + (W.heroStack > 0 ? W.heroStack : '') + '" placeholder="スタックを入力してください" onclick="showNumpad(this)" style="flex:1">';
+  h += '<button class="btn' + (W.heroStack === 0 && W.skipStack ? ' btn-primary' : '') + '" id="s3skipStack" style="white-space:nowrap;font-size:10px;padding:4px 8px">' + (W.heroStack === 0 && W.skipStack ? '省略中' : '省略する') + '</button></div>';
+  h += '</div>';
+
+  $('wizardContent').innerHTML = h;
+
+  $('s3stack').addEventListener('input', function(){
+    W.heroStack = parseInt(this.value) || 0;
+    W.skipStack = false;
+    renderNav();
+  });
+
+  $('s3skipStack').addEventListener('click', function(){
+    W.skipStack = !W.skipStack;
+    if (W.skipStack) {
+      W.heroStack = 0;
+      $('s3stack').value = '';
+    }
+    this.textContent = W.skipStack ? '省略中' : '省略する';
+    this.className = 'btn' + (W.skipStack ? ' btn-primary' : '');
+    renderNav();
+  });
+
+  renderCardSelector('s3cards', 's3selected', W.heroCards, 2, 'hero', function(cards){
+    W.heroCards = cards;
+    renderNav();
+    // 2枚揃ったらスタック入力をアクティブに
+    if (cards.length === 2) {
+      setTimeout(function(){
+        var stackEl = $('s3stack');
+        if (stackEl && !stackEl.value) {
+          stackEl.focus();
+          showNumpad(stackEl);
+        }
+      }, 150);
+    }
+  });
+}
+
+/* ========== CARD SELECTOR COMPONENT (2行10列: ランク→スート) ========== */
+function renderCardSelector(gridId, displayId, selected, maxCards, ownerId, onChange) {
+  var grid = $(gridId);
+  var display = $(displayId);
+  var pendingRank = null; // ランク選択後、スート待ち
+  var activeSlot = -1; // 現在入力対象のスロット
+
+  // 選択済みカード数（nullを除く）
+  function filledCount() { return selected.filter(function(c){ return c !== null; }).length; }
+
+  // 最初の空きスロットをアクティブにする
+  function activateNextSlot() {
+    activeSlot = -1;
+    for (var i = 0; i < maxCards; i++) {
+      if (!selected[i]) { activeSlot = i; return; }
+    }
+  }
+
+  function render() {
+    // Display: 固定スロット表示（位置保持）
+    if (display) {
+      if (activeSlot < 0) activateNextSlot(); // 初回
+      var dh = '';
+      for (var si = 0; si < maxCards; si++) {
+        var c = selected[si] || null;
+        if (c) {
+          var suits = {s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'};
+          dh += '<div class="selected-card-display ' + cardColor(c) + '" style="cursor:pointer"><span>' + RANK_DISPLAY[c.charAt(0)] + '</span><span>' + (suits[c.charAt(1)] || '') + '</span><span class="card-remove" data-remove-idx="' + si + '">\u00d7</span></div>';
+        } else {
+          var isActive = si === activeSlot;
+          dh += '<div class="selected-card-display empty-card' + (isActive ? ' active-slot' : '') + '" data-slot-idx="' + si + '" style="cursor:pointer">?</div>';
+        }
+      }
+      if (filledCount() < maxCards) dh += '<span style="font-size:10px;color:var(--dim);margin-left:4px">Tap rank, then suit</span>';
+      display.innerHTML = dh;
+      // 削除イベント（display内）
+      var removeBtns = display.querySelectorAll('[data-remove-idx]');
+      for (var ri = 0; ri < removeBtns.length; ri++) {
+        removeBtns[ri].addEventListener('click', function(){
+          var idx = parseInt(this.getAttribute('data-remove-idx'));
+          if (selected[idx]) { delete W.usedCards[selected[idx]]; selected[idx] = null; onChange(selected.filter(function(c){ return c !== null; })); }
+          activeSlot = idx; // 削除したスロットをアクティブに
+          pendingRank = null; render();
+        });
+      }
+      // 空枠クリックでアクティブスロット切替
+      var slotBtns = display.querySelectorAll('[data-slot-idx]');
+      for (var sli = 0; sli < slotBtns.length; sli++) {
+        slotBtns[sli].addEventListener('click', function(){
+          activeSlot = parseInt(this.getAttribute('data-slot-idx'));
+          pendingRank = null; render();
+        });
+      }
+    }
+
+    // 2行10列グリッド: Row1=[A,2..9,10] Row2=[J,Q,K,_,_,_,♠,♣,♥,♦]
+    // スート順: ♠♣♥♦
+    var row1Ranks = ['A','2','3','4','5','6','7','8','9','T'];
+    var row2Ranks = ['J','Q','K'];
+    var gh = '<div class="card-grid">';
+
+    // Row 1: A-10
+    row1Ranks.forEach(function(rank){
+      var cls = 'card-cell';
+      if (pendingRank === rank) cls += ' pending-rank';
+      // ランクが全スート使用済みかチェック
+      var allUsed = SUITS.every(function(s){ var c = rank+s.k; return W.usedCards[c] || selected.indexOf(c) >= 0; });
+      if (allUsed) cls += ' used';
+      gh += '<div class="' + cls + '" data-rank="' + rank + '">' + RANK_DISPLAY[rank] + '</div>';
+    });
+
+    // Row 2: J,Q,K, 空×3, ♠♣♥♦
+    row2Ranks.forEach(function(rank){
+      var cls = 'card-cell';
+      if (pendingRank === rank) cls += ' pending-rank';
+      var allUsed = SUITS.every(function(s){ var c = rank+s.k; return W.usedCards[c] || selected.indexOf(c) >= 0; });
+      if (allUsed) cls += ' used';
+      gh += '<div class="' + cls + '" data-rank="' + rank + '">' + RANK_DISPLAY[rank] + '</div>';
+    });
+    for (var i = 0; i < 3; i++) gh += '<div class="card-cell empty-cell"></div>';
+    SUITS.forEach(function(suit){
+      var cls = 'card-cell';
+      if (suit.color === 'red') cls += ' red';
+      if (!pendingRank) cls += ' used'; // ランク未選択時はスート無効
+      if (pendingRank) {
+        var card = pendingRank + suit.k;
+        var isUsed = W.usedCards[card] || selected.indexOf(card) >= 0;
+        if (isUsed) cls += ' used';
+      }
+      gh += '<div class="' + cls + '" data-suit="' + suit.k + '">' + suit.sym + '</div>';
+    });
+    gh += '</div>';
+
+    grid.innerHTML = gh;
+
+    // Events: ランクタップ
+    var rankCells = grid.querySelectorAll('[data-rank]');
+    for (var r = 0; r < rankCells.length; r++) {
+      rankCells[r].addEventListener('click', function(){
+        if (this.classList.contains('used')) return;
+        var rank = this.getAttribute('data-rank');
+        pendingRank = (pendingRank === rank) ? null : rank; // トグル
+        render();
+      });
+    }
+
+    // Events: スートタップ
+    var suitCells = grid.querySelectorAll('[data-suit]');
+    for (var s = 0; s < suitCells.length; s++) {
+      suitCells[s].addEventListener('click', function(){
+        if (!pendingRank || this.classList.contains('used')) return;
+        var suit = this.getAttribute('data-suit');
+        var card = pendingRank + suit;
+        if (filledCount() < maxCards) {
+          // アクティブスロットに挿入
+          var slot = (activeSlot >= 0 && !selected[activeSlot]) ? activeSlot : -1;
+          if (slot < 0) { for (var si = 0; si < maxCards; si++) { if (!selected[si]) { slot = si; break; } } }
+          if (slot >= 0) { selected[slot] = card; }
+          else if (selected.length < maxCards) { selected.push(card); }
+          W.usedCards[card] = ownerId;
+          onChange(selected.filter(function(c){ return c !== null; }));
+          activateNextSlot(); // 次の空きスロットへ
+        }
+        pendingRank = null;
+        render();
+      });
+    }
+
+  }
+
+  render();
+}
+
+/* ----- STEP 4: Preflop ----- */
+var streetState = null;
+
+function initStreetState(streetName) {
+  var activePlayers = W.players.filter(function(p){ return p.active !== false && !W.foldedSeats[p.seat]; });
+  var order;
+  if (streetName === 'preflop') {
+    order = getPreflopOrder(activePlayers);
+  } else {
+    order = getPostflopOrder(activePlayers);
+  }
+
+  streetState = {
+    street: streetName,
+    actions: W.streets[streetName].actions.slice(),
+    order: order,
+    currentIdx: 0,
+    currentBet: (streetName === 'preflop') ? W.bb : 0,
+    lastRaiseSize: (streetName === 'preflop') ? W.bb : 0,
+    investments: {},
+    pot: calcCurrentPot(),
+    startingPot: calcStartingPot(streetName),
+    done: false
+  };
+
+  // Preflop: SB and BB are already invested
+  if (streetName === 'preflop') {
+    var posMap = assignPositions(W.players.length, W.btnSeat, W.players.map(function(p){return p.seat;}));
+    W.players.forEach(function(p){
+      if (posMap[p.seat] === 'SB') streetState.investments[p.seat] = W.sb;
+      else if (posMap[p.seat] === 'BB') streetState.investments[p.seat] = W.bb;
+      else streetState.investments[p.seat] = 0;
+    });
+    // Add ante (BB player only)
+    if (W.ante > 0) {
+      activePlayers.forEach(function(p){
+        if (posMap[p.seat] === 'BB') {
+          streetState.investments[p.seat] = (streetState.investments[p.seat] || 0) + W.ante;
+        }
+      });
+    }
+  } else {
+    activePlayers.forEach(function(p){ streetState.investments[p.seat] = 0; });
+  }
+
+  // If resuming actions already recorded
+  if (streetState.actions.length > 0) {
+    streetState.done = true;
+  }
+}
+
+function getPreflopOrder(players) {
+  var posMap = assignPositions(W.players.length, W.btnSeat, W.players.map(function(p){return p.seat;}));
+  // UTG acts first preflop (position index 3+), then SB(1), BB(2)
+  var sorted = players.slice().sort(function(a,b){
+    var ai = ((a.seat - W.btnSeat + 10) % 10);
+    var bi = ((b.seat - W.btnSeat + 10) % 10);
+    return ai - bi;
+  });
+  // Rotate: BTN(0),SB(1),BB(2) go to end → UTG first
+  var result = [];
+  var prefix = [];
+  for (var i = 0; i < sorted.length; i++) {
+    var offset = ((sorted[i].seat - W.btnSeat + 10) % 10);
+    if (offset <= 2 && W.players.length > 2) {
+      // BTN, SB, BB → end of order (but for preflop, SB and BB act last)
+      prefix.push(sorted[i]);
+    } else {
+      result.push(sorted[i]);
+    }
+  }
+  // For preflop: UTG...CO, then BTN, SB, BB
+  result = result.concat(prefix);
+  return result;
+}
+
+function getPostflopOrder(players) {
+  // SB first, then clockwise ending at BTN
+  var sorted = players.slice().sort(function(a,b){
+    var ai = ((a.seat - W.btnSeat + 10) % 10);
+    var bi = ((b.seat - W.btnSeat + 10) % 10);
+    return ai - bi;
+  });
+  // Rotate: BTN(0) goes to end
+  if (sorted.length > 0 && ((sorted[0].seat - W.btnSeat + 10) % 10) === 0) {
+    sorted.push(sorted.shift());
+  }
+  return sorted;
+}
+
+function calcCurrentPot() {
+  var pot = 0;
+  // Antes
+  pot += W.ante; // BB only
+  // Blinds
+  pot += W.sb + W.bb;
+  // Previous streets
+  ['preflop','flop','turn','river'].forEach(function(st){
+    W.streets[st].actions.forEach(function(a){
+      if (a.action !== 'fold') pot += (a.amount || 0);
+    });
+  });
+  return pot;
+}
+
+// 現ストリート開始時点のポット（それ以前のストリート累計のみ）
+function calcStartingPot(currentStreet) {
+  var pot = W.sb + W.bb + W.ante;
+  var order = ['preflop','flop','turn','river'];
+  for (var i = 0; i < order.length; i++) {
+    if (order[i] === currentStreet) break;
+    W.streets[order[i]].actions.forEach(function(a){
+      if (a.action !== 'fold') pot += (a.amount || 0);
+    });
+  }
+  return pot;
+}
+
+function renderStreetActions(streetName, streetLabel) {
+  if (!streetState || streetState.street !== streetName) {
+    initStreetState(streetName);
+  }
+
+  // スクロール位置を保存（再描画後にリストが上に戻らないよう）
+  var cont = $('wizardContent');
+  var savedScroll = cont ? cont.scrollTop : 0;
+
+  var h = '';
+
+  // Board + Pot ヘッダー（1行）
+  if (streetName !== 'preflop') {
+    h += '<div class="board-pot-row">';
+    h += renderBoardDisplayInline(streetName);
+    h += '<div class="pot-inline">Pot: ' + formatNum(streetState.startingPot) + '</div>';
+    h += '</div>';
+  } else {
+    h += '<div class="pot-display">Pot: ' + formatNum(streetState.startingPot) + '</div>';
+  }
+
+  // プレイヤーリスト（Table Setupデザイン流用）
+  h += renderActionPlayerList(streetName);
+
+  if (streetState.done) {
+    h += '<div style="text-align:center;margin:10px 0;font-size:12px;font-weight:700">Street complete</div>';
+    h += '<div style="text-align:center"><button class="btn btn-sm" onclick="resetStreet(\'' + streetName + '\')">Redo this street</button></div>';
+    // Navを更新してNextを有効化
+    setTimeout(function(){ renderNav(); }, 0);
+  } else if (streetState.currentIdx < streetState.order.length) {
+    var cp = streetState.order[streetState.currentIdx];
+    if (!W.foldedSeats[cp.seat] && !W.allInSeats[cp.seat]) {
+      h += renderActionInput(cp, streetName);
+    } else {
+      // Skip folded/allin
+      streetState.currentIdx++;
+      $('wizardContent').innerHTML = '';
+      renderStreetActions(streetName, streetLabel);
+      return;
+    }
+  } else {
+    // All acted, street done
+    streetState.done = true;
+    W.streets[streetName].actions = streetState.actions.slice();
+    checkHandEnded(streetName);
+    renderStreetActions(streetName, streetLabel);
+    return;
+  }
+
+  $('wizardContent').innerHTML = '<div class="sec"><div class="sec-title">' + streetLabel + '</div>' + h + '</div>';
+  // スクロール位置を復元
+  var cont2 = $('wizardContent');
+  if (cont2) cont2.scrollTop = savedScroll;
+}
+
+function renderActionInput(player, streetName) {
+  var callAmt = streetState.currentBet - (streetState.investments[player.seat] || 0);
+  if (callAmt < 0) callAmt = 0;
+
+  var h = '';
+  // Action buttons
+  h += '<div class="action-bar">';
+  h += '<div class="action-btn fold" onclick="doAction(\'fold\',0)">Fold</div>';
+  if (callAmt === 0) {
+    h += '<div class="action-btn" onclick="doAction(\'check\',0)">Check</div>';
+  } else {
+    h += '<div class="action-btn" onclick="doAction(\'call\',' + callAmt + ')">Call ' + formatNum(streetState.currentBet) + '</div>';
+  }
+  if (streetState.currentBet === 0) {
+    h += '<div class="action-btn" onclick="showAmountInput(\'bet\')">Bet</div>';
+  } else {
+    h += '<div class="action-btn" onclick="showAmountInput(\'raise\')">Raise</div>';
+  }
+  h += '<div class="action-btn" onclick="showAmountInput(\'allin\')">All-in</div>';
+  h += '</div>';
+
+  // Amount input area (hidden until needed)
+  h += '<div id="amountArea"></div>';
+
+  return h;
+}
+
+var _currentAmountMin = 0; // confirmAmount用ミニマム保存（合計ベース）
+var _currentAmountInvested = 0; // 現プレイヤーの既投入額
+
+function showAmountInput(actionType) {
+  var cp = streetState.order[streetState.currentIdx];
+
+  // 合計ベースで計算（raise-to額）
+  var invested = streetState.investments[cp.seat] || 0;
+  _currentAmountInvested = invested;
+  var sliderMin, sliderDefault;
+  if (actionType === 'bet') {
+    sliderMin = W.bb;
+    sliderDefault = Math.round(streetState.pot * 0.5 / W.bb) * W.bb || W.bb * 3;
+  } else if (actionType === 'raise') {
+    // 最小レイズ合計 = currentBet + lastRaiseSize
+    var minRaiseTotal = streetState.currentBet + (streetState.lastRaiseSize || W.bb);
+    sliderMin = Math.max(W.bb * 2, minRaiseTotal);
+    sliderDefault = Math.round((streetState.currentBet + streetState.lastRaiseSize * 1.5) / W.bb) * W.bb;
+    if (sliderDefault < sliderMin) sliderDefault = sliderMin;
+  } else { // allin
+    sliderMin = invested + W.bb;
+    sliderDefault = sliderMin * 10;
+  }
+  _currentAmountMin = sliderMin;
+  var sliderMax;
+  if (actionType === 'bet') {
+    sliderMax = Math.max(streetState.pot * 2, sliderMin * 2);
+  } else if (actionType === 'raise') {
+    sliderMax = Math.max(sliderMin * 10, sliderMin * 2);
+  } else {
+    sliderMax = sliderMin * 5;
+  }
+  // 範囲クランプ
+  if (sliderDefault < sliderMin) sliderDefault = sliderMin;
+  if (sliderDefault > sliderMax) sliderDefault = sliderMax;
+
+  var h = '<div class="amount-input-row">';
+  h += '<label style="font-size:11px;font-weight:700;flex-shrink:0">' + actionType.toUpperCase() + '</label>';
+  h += '<input type="text" inputmode="numeric" id="amountVal" value="' + sliderDefault + '" onclick="showNumpad(this)">';
+  h += '<button class="btn btn-primary btn-sm" onclick="confirmAmount(\'' + actionType + '\')">OK</button>';
+  h += '</div>';
+
+  // スライダー
+  h += '<div class="amount-slider-wrap">';
+  h += '<input type="range" class="amount-slider" id="amountSlider"'
+     + ' min="' + sliderMin + '" max="' + sliderMax + '" step="' + W.bb + '"'
+     + ' value="' + sliderDefault + '" oninput="onSliderChange(this.value)">';
+  h += '</div>';
+  h += '<div class="amount-slider-labels"><span>' + formatNum(sliderMin) + '</span><span>' + formatNum(sliderMax) + '</span></div>';
+
+  $('amountArea').innerHTML = h;
+  showNumpad($('amountVal'));
+}
+
+function onSliderChange(val) {
+  var el = $('amountVal');
+  if (!el) return;
+  el.value = val;
+  numpadTarget = el; // numpadと連動
+}
+
+function confirmAmount(actionType) {
+  var totalAmt = parseInt($('amountVal').value) || 0;
+  if (totalAmt <= 0) { show('Enter amount'); return; }
+  if (actionType !== 'allin' && totalAmt < _currentAmountMin) {
+    show('最小額は ' + formatNum(_currentAmountMin) + ' です');
+    return;
+  }
+  // 合計入力 → 差分（追加投入額）に変換してdoActionへ
+  var diffAmt = totalAmt - _currentAmountInvested;
+  if (diffAmt <= 0) { show('Enter amount'); return; }
+  doAction(actionType, diffAmt);
+}
+
+function doAction(action, amount) {
+  var cp = streetState.order[streetState.currentIdx];
+  var posMap = assignPositions(W.players.length, W.btnSeat, W.players.map(function(p){return p.seat;}));
+
+  var a = {
+    seat: cp.seat,
+    position: posMap[cp.seat] || '',
+    action: action,
+    amount: amount
+  };
+
+  streetState.actions.push(a);
+
+  if (action === 'fold') {
+    W.foldedSeats[cp.seat] = true;
+  } else if (action === 'allin') {
+    W.allInSeats[cp.seat] = true;
+    streetState.investments[cp.seat] = (streetState.investments[cp.seat] || 0) + amount;
+    if ((streetState.investments[cp.seat]) > streetState.currentBet) {
+      streetState.currentBet = streetState.investments[cp.seat];
+      // Re-queue players (raise happened)
+      requeuePlayers(cp.seat);
+    }
+    streetState.pot += amount;
+  } else if (action === 'call') {
+    streetState.investments[cp.seat] = (streetState.investments[cp.seat] || 0) + amount;
+    streetState.pot += amount;
+  } else if (action === 'bet' || action === 'raise') {
+    var prevBet = streetState.currentBet;
+    streetState.investments[cp.seat] = (streetState.investments[cp.seat] || 0) + amount;
+    streetState.currentBet = streetState.investments[cp.seat];
+    streetState.lastRaiseSize = streetState.currentBet - prevBet;
+    streetState.pot += amount;
+    requeuePlayers(cp.seat);
+  }
+
+  streetState.currentIdx++;
+  advanceToNextActive();
+
+  // Check if street done
+  if (streetState.currentIdx >= streetState.order.length) {
+    streetState.done = true;
+    W.streets[streetState.street].actions = streetState.actions.slice();
+    checkHandEnded(streetState.street);
+  }
+
+  // サイレントモード中は再描画しない（再生ループから呼ばれた場合）
+  if (silentReplay) return;
+
+  // 編集後の自動再生キューがあれば処理する
+  if (autoReplayQueue && autoReplayQueue.length > 0) {
+    var queue = autoReplayQueue;
+    autoReplayQueue = null;
+    autoReplayActions(queue);
+    return;
+  }
+
+  // Re-render
+  var labelMap = {preflop:'STEP 4: Preflop',flop:'STEP 6: Flop',turn:'STEP 8: Turn',river:'STEP 10: River'};
+  renderStreetActions(streetState.street, labelMap[streetState.street]);
+}
+
+function requeuePlayers(raiseSeat) {
+  // レイザーの次のポジションから、テーブル順にリキュー
+  var activePlayers = W.players.filter(function(p){ return p.active !== false; });
+  var seats = activePlayers.map(function(p){ return p.seat; });
+
+  // レイザーのインデックスを見つけ、その次から巡回
+  var raiseIdx = seats.indexOf(raiseSeat);
+  var ordered = [];
+  for (var i = 1; i < seats.length; i++) {
+    var idx = (raiseIdx + i) % seats.length;
+    var seat = seats[idx];
+    if (seat === raiseSeat) continue;
+    if (W.foldedSeats[seat] || W.allInSeats[seat]) continue;
+    if ((streetState.investments[seat] || 0) < streetState.currentBet) {
+      var player = activePlayers[idx];
+      ordered.push(player);
+    }
+  }
+
+  // Rebuild order from current position
+  streetState.order = streetState.order.slice(0, streetState.currentIdx + 1).concat(ordered);
+}
+
+function advanceToNextActive() {
+  while (streetState.currentIdx < streetState.order.length) {
+    var p = streetState.order[streetState.currentIdx];
+    if (W.foldedSeats[p.seat] || W.allInSeats[p.seat]) {
+      streetState.currentIdx++;
+    } else {
+      break;
+    }
+  }
+}
+
+/* ========== アクション編集（タップで再入力）========== */
+function editPlayerAction(seat) {
+  var streetName = streetState.street;
+  // このシートの「最後の」アクション位置を探す（バッジ表示と一致させる）
+  // 例: UTGがRAISE→4betした場合、バッジは4betを表示 → 4betを編集対象にする
+  var cutIdx = -1;
+  for (var i = streetState.actions.length - 1; i >= 0; i--) {
+    if (streetState.actions[i].seat === seat) { cutIdx = i; break; }
+  }
+  if (cutIdx < 0) return; // まだアクションなし
+
+  var beforeActions = streetState.actions.slice(0, cutIdx);
+  var afterActions  = streetState.actions.slice(cutIdx + 1);
+
+  // ストリート状態をリセットして再構築
+  // initStreetStateがW.streetsをコピーするため、先にクリアして空から始める
+  W.streets[streetName].actions = [];
+  rederiveFoldsAndAllIns(streetName);
+  streetState = null;
+  initStreetState(streetName);
+
+  // 編集前のアクションをサイレント再生してstateを再構築
+  silentReplay = true;
+  for (var i = 0; i < beforeActions.length; i++) {
+    var a = beforeActions[i];
+    // 対象のシートをorderの中で探してcurrentIdxを合わせる
+    while (streetState.currentIdx < streetState.order.length) {
+      var cur = streetState.order[streetState.currentIdx];
+      if (W.foldedSeats[cur.seat] || W.allInSeats[cur.seat]) {
+        streetState.currentIdx++;
+      } else {
+        break;
+      }
+    }
+    if (streetState.currentIdx < streetState.order.length) {
+      doAction(a.action, a.amount);
+    }
+  }
+  silentReplay = false;
+
+  streetState.done = false;
+  autoReplayQueue = afterActions;
+
+  var labelMap = {preflop:'STEP 4: Preflop',flop:'STEP 6: Flop',turn:'STEP 8: Turn',river:'STEP 10: River'};
+  renderStreetActions(streetName, labelMap[streetName]);
+}
+
+/* 編集後に後続アクションを自動再生（Call額は自動修正）*/
+function autoReplayActions(queue) {
+  silentReplay = true;
+  for (var i = 0; i < queue.length; i++) {
+    var a = queue[i];
+    if (streetState.done) break;
+    // フォールド済み・オールイン済みはスキップ
+    if (W.foldedSeats[a.seat]) continue;
+    if (W.allInSeats[a.seat] && a.action !== 'fold') continue;
+    // このシートをorderの中でcurrentIdx以降から探す
+    var targetIdx = -1;
+    for (var j = streetState.currentIdx; j < streetState.order.length; j++) {
+      if (streetState.order[j].seat === a.seat) { targetIdx = j; break; }
+    }
+    if (targetIdx < 0) continue;
+    streetState.currentIdx = targetIdx;
+    // Call額は現在のcurrentBetから再計算、それ以外はそのまま
+    var amt = a.amount;
+    if (a.action === 'call') {
+      amt = Math.max(0, streetState.currentBet - (streetState.investments[a.seat] || 0));
+    }
+    doAction(a.action, amt);
+  }
+  silentReplay = false;
+  var labelMap = {preflop:'STEP 4: Preflop',flop:'STEP 6: Flop',turn:'STEP 8: Turn',river:'STEP 10: River'};
+  renderStreetActions(streetState.street, labelMap[streetState.street]);
+}
+
+function checkHandEnded(streetName) {
+  var active = getActivePlayers();
+  var nonAllIn = active.filter(function(p){ return !W.allInSeats[p.seat]; });
+  if (active.length <= 1) {
+    W.handEnded = true;
+    W.endedAtStreet = streetName;
+    // Auto-set result
+    if (active.length === 1) {
+      W.results = [{ seat: active[0].seat, result: 'win' }];
+    }
+  }
+}
+
+function resetStreet(streetName) {
+  W.streets[streetName].actions = [];
+  // Reset folds/allins from this street's actions
+  streetState = null;
+  // Re-derive foldedSeats and allInSeats from previous streets
+  rederiveFoldsAndAllIns(streetName);
+  W.handEnded = false;
+  W.endedAtStreet = null;
+  var labelMap = {preflop:'STEP 4: Preflop',flop:'STEP 6: Flop',turn:'STEP 8: Turn',river:'STEP 10: River'};
+  renderStreetActions(streetName, labelMap[streetName]);
+}
+
+function rederiveFoldsAndAllIns(upToStreet) {
+  W.foldedSeats = {};
+  W.allInSeats = {};
+  var streets = ['preflop','flop','turn','river'];
+  for (var i = 0; i < streets.length; i++) {
+    // Include all streets up to BUT NOT including upToStreet
+    // (upToStreet is the one being reset/replayed)
+    if (streets[i] === upToStreet) break;
+    W.streets[streets[i]].actions.forEach(function(a){
+      if (a.action === 'fold') W.foldedSeats[a.seat] = true;
+      if (a.action === 'allin') W.allInSeats[a.seat] = true;
+    });
+  }
+}
+
+function rederiveFoldsAndAllInsInclusive(throughStreet) {
+  W.foldedSeats = {};
+  W.allInSeats = {};
+  var streets = ['preflop','flop','turn','river'];
+  for (var i = 0; i < streets.length; i++) {
+    W.streets[streets[i]].actions.forEach(function(a){
+      if (a.action === 'fold') W.foldedSeats[a.seat] = true;
+      if (a.action === 'allin') W.allInSeats[a.seat] = true;
+    });
+    if (streets[i] === throughStreet) break;
+  }
+}
+
+function formatNum(n) {
+  if (n === null || n === undefined) return '0';
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+// アクション画面用インラインボード（実際に出ているカードのみ表示）
+function renderBoardDisplayInline(streetName) {
+  var allBoard = [];
+  if (W.streets.flop.board.length) allBoard = allBoard.concat(W.streets.flop.board);
+  if (streetName !== 'flop' && W.streets.turn.board.length) allBoard = allBoard.concat(W.streets.turn.board);
+  if (streetName === 'river' && W.streets.river.board.length) allBoard = allBoard.concat(W.streets.river.board);
+  var suits = {s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'};
+  var h = '<div class="board-display-inline">';
+  allBoard.forEach(function(c){
+    h += '<div class="board-card ' + cardColor(c) + '">';
+    h += '<span>' + RANK_DISPLAY[c.charAt(0)] + '</span>';
+    h += '<span>' + (suits[c.charAt(1)] || '') + '</span>';
+    h += '</div>';
+  });
+  h += '</div>';
+  return h;
+}
+
+// アクション画面プレイヤーリスト（Table Setupデザイン流用・読み取り専用）
+function renderActionPlayerList(streetName) {
+  var seated = W.players.filter(function(p){ return p.active !== false; });
+  var ordered = (streetName === 'preflop') ? getPreflopOrder(seated) : getPostflopOrder(seated);
+  var currentSeat = (!streetState.done && streetState.order[streetState.currentIdx])
+    ? streetState.order[streetState.currentIdx].seat : null;
+
+  // 今ストリートのアクション一覧（seat → 全アクション配列）
+  var actMap = {};
+  streetState.actions.forEach(function(a){
+    if (!actMap[a.seat]) actMap[a.seat] = [];
+    actMap[a.seat].push(a);
+  });
+
+  // 最長名(+Heroカード幅)を算出してapl-infoの幅を固定
+  var heroCardsCh = (W.heroCards && W.heroCards.length === 2) ? 6 : 0; // ミニカード2枚≒6ch
+  var maxInfoLen = 0;
+  ordered.forEach(function(p){
+    var name = p.name || 'Seat ' + p.seat;
+    var len = name.length + (p.isHero ? heroCardsCh : 0);
+    if (len > maxInfoLen) maxInfoLen = len;
+  });
+  var infoWidth = Math.max(maxInfoLen, 4) + 1; // +1ch余白
+
+  var h = '<div class="action-player-list" style="--info-w:' + infoWidth + 'ch">';
+  ordered.forEach(function(p){
+    var isFolded  = !!W.foldedSeats[p.seat];
+    var isAllin   = !!W.allInSeats[p.seat];
+    var isCurrent = p.seat === currentSeat;
+    var seatActions = actMap[p.seat] || [];
+    var hasActed  = seatActions.length > 0;
+    var cls = 'player-row' + (isFolded ? ' folded' : '') + (isCurrent ? ' active-turn' : '');
+    // アクション済み行はタップで再入力可能（現在入力中は除く）
+    var tapAttr = (hasActed && !isCurrent)
+      ? ' onclick="editPlayerAction(' + p.seat + ')" style="cursor:pointer"'
+      : '';
+    h += '<div class="' + cls + '"' + tapAttr + '>';
+    // 席番号サークル
+    h += '<div class="seat-num ' + (isCurrent ? 'on' : '') + '">' + p.seat + '</div>';
+    // ポジション
+    h += '<div class="pos-label">' + (p.position || '') + '</div>';
+    // 名前+Heroカードのラッパー（固定幅で揃え）
+    h += '<div class="apl-info">';
+    h += '<span class="apl-name">' + escapeHtml(p.name || 'Seat ' + p.seat) + '</span>';
+    if (p.isHero && W.heroCards && W.heroCards.length === 2) {
+      h += '<span class="hero-mini-cards">';
+      W.heroCards.forEach(function(c){
+        h += '<span class="mini-card ' + cardColor(c) + '">';
+        h += '<span class="mc-rank">' + RANK_DISPLAY[c.charAt(0)] + '</span>';
+        h += '<span class="mc-suit">' + ({s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'}[c.charAt(1)] || '') + '</span>';
+        h += '</span>';
+      });
+      h += '</span>';
+    }
+    h += '</div>';
+    // アクションバッジチェーン — 全アクションを / で繋ぐ
+    if (hasActed) {
+      // ブラインド前払い分を初期値に含める（preflop時）
+      var blindInv = 0;
+      if (streetState && streetState.street === 'preflop') {
+        var posMap = assignPositions(W.players.length, W.btnSeat, W.players.map(function(pl){return pl.seat;}));
+        if (posMap[p.seat] === 'SB') blindInv = W.sb;
+        else if (posMap[p.seat] === 'BB') blindInv = W.bb + (W.ante || 0);
+      }
+      var runningTotal = blindInv;
+      var chain = seatActions.map(function(a){
+        var abbr = {fold:'F',check:'X',call:'C',bet:'B',raise:'R',allin:'A'}[a.action] || a.action[0].toUpperCase();
+        if (a.amount) runningTotal += a.amount;
+        return abbr + (a.amount ? formatNum(runningTotal) : '');
+      });
+      var lastAct = seatActions[seatActions.length - 1];
+      var isAgg = lastAct.action === 'bet' || lastAct.action === 'raise' || lastAct.action === 'allin';
+      h += '<div class="acted-chain' + (isAgg ? ' accent' : '') + '">' + chain.join('<span class="chain-arrow"> / </span>') + '</div>';
+    } else if (isAllin) {
+      // 前ストリートでオールイン
+      h += '<div class="acted-chain accent">ALL-IN</div>';
+    }
+    // 前ストリートFOLDは行の opacity で表現（バッジ不要）
+    h += '</div>';
+  });
+  h += '</div>';
+  return h;
+}
+
+/* ----- STEP 4: Preflop ----- */
+function renderStep4() {
+  // Reset street state for preflop if not already set
+  streetState = null;
+  // Re-derive state from scratch for preflop
+  W.foldedSeats = {};
+  W.allInSeats = {};
+  renderStreetActions('preflop', 'STEP 4: Preflop');
+}
+
+/* ----- STEP 5: Flop Board ----- */
+function renderStep5_board() {
+  renderBoardCardSelection('flop', 3, 'STEP 5: Flop - Board Cards');
+}
+
+/* ----- STEP 6: Flop Actions ----- */
+function renderStep6_flopAction() {
+  streetState = null;
+  rederiveFoldsAndAllIns('flop');
+  renderStreetActions('flop', 'STEP 6: Flop');
+}
+
+/* ----- STEP 7: Turn Board ----- */
+function renderStep7_board() {
+  renderBoardCardSelection('turn', 1, 'STEP 7: Turn - Board Card');
+}
+
+/* ----- STEP 8: Turn Actions ----- */
+function renderStep8_turnAction() {
+  streetState = null;
+  rederiveFoldsAndAllIns('turn');
+  renderStreetActions('turn', 'STEP 8: Turn');
+}
+
+/* ----- STEP 9: River Board ----- */
+function renderStep9_board() {
+  renderBoardCardSelection('river', 1, 'STEP 9: River - Board Card');
+}
+
+/* ----- STEP 10: River Actions ----- */
+function renderStep10_riverAction() {
+  streetState = null;
+  rederiveFoldsAndAllIns('river');
+  renderStreetActions('river', 'STEP 10: River');
+}
+
+function renderBoardCardSelection(streetName, count, title) {
+  var selected = W.streets[streetName].board.slice();
+  var suits = {s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'};
+
+  var h = '<div class="sec"><div class="sec-title">' + title + '</div>';
+
+  // 以前のストリートのボードカードと選択枠を一列で表示
+  var prevBoard = [];
+  if (streetName === 'turn') prevBoard = W.streets.flop.board.slice();
+  if (streetName === 'river') prevBoard = W.streets.flop.board.concat(W.streets.turn.board);
+
+  h += '<div class="selected-cards" style="align-items:center">';
+  if (prevBoard.length > 0) {
+    prevBoard.forEach(function(c) {
+      h += '<div class="board-card ' + cardColor(c) + '">';
+      h += '<span>' + RANK_DISPLAY[c.charAt(0)] + '</span>';
+      h += '<span>' + (suits[c.charAt(1)] || '') + '</span>';
+      h += '</div>';
+    });
+    h += '<div style="width:10px"></div>';
+  }
+  h += '<span id="boardSelected" style="display:flex;gap:6px;align-items:center"></span>';
+  h += '</div>';
+  h += '<div id="boardCards"></div>';
+
+  // Confirmボタン廃止 — Nextで進む
+
+  h += '</div>';
+
+  $('wizardContent').innerHTML = h;
+
+  renderCardSelector('boardCards', 'boardSelected', selected, count, 'board_' + streetName, function(cards){
+    W.streets[streetName].board = cards.slice();
+    renderNav();
+  });
+}
+
+
+/* ========== POKER HAND EVALUATOR ========== */
+var RANK_VALUES = {A:14,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,T:10,J:11,Q:12,K:13};
+var HAND_NAMES = ['High Card','One Pair','Two Pair','Three of a Kind','Straight','Flush','Full House','Four of a Kind','Straight Flush','Royal Flush'];
+
+function parseCard(c) {
+  return { rank: RANK_VALUES[c.charAt(0)], suit: c.charAt(c.length - 1), raw: c };
+}
+
+function getCombinations(arr, k) {
+  var result = [];
+  function combo(start, chosen) {
+    if (chosen.length === k) { result.push(chosen.slice()); return; }
+    for (var i = start; i < arr.length; i++) {
+      chosen.push(arr[i]);
+      combo(i + 1, chosen);
+      chosen.pop();
+    }
+  }
+  combo(0, []);
+  return result;
+}
+
+function evaluate5(cards) {
+  var parsed = cards.map(parseCard);
+  parsed.sort(function(a, b) { return b.rank - a.rank; });
+  var ranks = parsed.map(function(c) { return c.rank; });
+  var suits = parsed.map(function(c) { return c.suit; });
+
+  var isFlush = suits.every(function(s) { return s === suits[0]; });
+  var isStraight = false;
+  var straightHigh = 0;
+
+  // Normal straight
+  if (ranks[0] - ranks[4] === 4 && new Set(ranks).size === 5) {
+    isStraight = true;
+    straightHigh = ranks[0];
+  }
+  // Wheel (A-2-3-4-5)
+  if (ranks[0] === 14 && ranks[1] === 5 && ranks[2] === 4 && ranks[3] === 3 && ranks[4] === 2) {
+    isStraight = true;
+    straightHigh = 5;
+  }
+
+  // Count ranks
+  var counts = {};
+  ranks.forEach(function(r) { counts[r] = (counts[r] || 0) + 1; });
+  var groups = Object.keys(counts).map(function(r) { return { rank: parseInt(r), count: counts[r] }; });
+  groups.sort(function(a, b) { return b.count - a.count || b.rank - a.rank; });
+
+  var handRank, score;
+
+  if (isStraight && isFlush) {
+    handRank = straightHigh === 14 ? 9 : 8; // Royal or Straight Flush
+    score = handRank * 1e10 + straightHigh;
+  } else if (groups[0].count === 4) {
+    handRank = 7; // Four of a Kind
+    score = handRank * 1e10 + groups[0].rank * 1e8 + groups[1].rank;
+  } else if (groups[0].count === 3 && groups[1].count === 2) {
+    handRank = 6; // Full House
+    score = handRank * 1e10 + groups[0].rank * 1e8 + groups[1].rank * 1e6;
+  } else if (isFlush) {
+    handRank = 5;
+    score = handRank * 1e10 + ranks[0] * 1e8 + ranks[1] * 1e6 + ranks[2] * 1e4 + ranks[3] * 1e2 + ranks[4];
+  } else if (isStraight) {
+    handRank = 4;
+    score = handRank * 1e10 + straightHigh;
+  } else if (groups[0].count === 3) {
+    handRank = 3; // Three of a Kind
+    var kickers = groups.filter(function(g) { return g.count === 1; }).map(function(g) { return g.rank; }).sort(function(a,b){return b-a;});
+    score = handRank * 1e10 + groups[0].rank * 1e8 + kickers[0] * 1e6 + kickers[1] * 1e4;
+  } else if (groups[0].count === 2 && groups[1].count === 2) {
+    handRank = 2; // Two Pair
+    var pairs = [groups[0].rank, groups[1].rank].sort(function(a,b){return b-a;});
+    var kicker = groups[2].rank;
+    score = handRank * 1e10 + pairs[0] * 1e8 + pairs[1] * 1e6 + kicker * 1e4;
+  } else if (groups[0].count === 2) {
+    handRank = 1; // One Pair
+    var kickers2 = groups.filter(function(g) { return g.count === 1; }).map(function(g) { return g.rank; }).sort(function(a,b){return b-a;});
+    score = handRank * 1e10 + groups[0].rank * 1e8 + kickers2[0] * 1e6 + kickers2[1] * 1e4 + kickers2[2] * 1e2;
+  } else {
+    handRank = 0; // High Card
+    score = handRank * 1e10 + ranks[0] * 1e8 + ranks[1] * 1e6 + ranks[2] * 1e4 + ranks[3] * 1e2 + ranks[4];
+  }
+
+  return { rank: handRank, name: HAND_NAMES[handRank], score: score, cards: cards };
+}
+
+function evaluateHand(holeCards, boardCards) {
+  var all7 = holeCards.concat(boardCards);
+  var combos = getCombinations(all7, 5);
+  var best = null;
+  combos.forEach(function(c5) {
+    var result = evaluate5(c5);
+    if (!best || result.score > best.score) best = result;
+  });
+  return best;
+}
+
+function autoJudgeResults() {
+  var board = [].concat(W.streets.flop.board, W.streets.turn.board, W.streets.river.board);
+  if (board.length < 5) return null; // ボード不完全 → 手動
+
+  // Show済みプレイヤーを収集
+  var shown = W.showdowns.filter(function(sd) {
+    return sd.type === 'show' && sd.cards && sd.cards.length === 2;
+  });
+  if (shown.length === 0) return null;
+
+  // 各プレイヤーのハンドを評価
+  var evals = shown.map(function(sd) {
+    var hand = evaluateHand(sd.cards, board);
+    return { seat: sd.seat, hand: hand };
+  });
+
+  // 最高スコアを特定
+  var maxScore = 0;
+  evals.forEach(function(e) { if (e.hand.score > maxScore) maxScore = e.hand.score; });
+
+  var winners = evals.filter(function(e) { return e.hand.score === maxScore; });
+
+  // 結果生成
+  var results;
+  if (winners.length === 1) {
+    results = [{ seat: winners[0].seat, result: 'win' }];
+  } else {
+    results = winners.map(function(w) { return { seat: w.seat, result: 'chop' }; });
+  }
+
+  return { results: results, evals: evals };
+}
+
+/* ----- STEP 11: Showdown ----- */
+function getShowdownOrder(active) {
+  // リバーアクションを取得
+  var riverActions = W.streets.river.actions || [];
+  // リバーアグレッサー（最後にbet/raiseした人）を探す
+  var aggressor = null;
+  for (var i = riverActions.length - 1; i >= 0; i--) {
+    var a = riverActions[i];
+    if (a.action === 'bet' || a.action === 'raise') {
+      aggressor = a.seat;
+      break;
+    }
+  }
+
+  if (aggressor !== null) {
+    // アグレッサーが先、そこからシート順（循環）
+    var sorted = active.slice().sort(function(a, b) {
+      var ai = ((a.seat - aggressor + 10) % 10);
+      var bi = ((b.seat - aggressor + 10) % 10);
+      return ai - bi;
+    });
+    return sorted;
+  } else {
+    // アクションなし → ポストフロップ順（OOPから）
+    return getPostflopOrder(active);
+  }
+}
+
+function renderStep11_showdown() {
+  var active = getActivePlayers();
+  if (active.length <= 1) {
+    // No showdown needed
+    var h = '<div class="sec"><div class="sec-title">STEP 11: Showdown</div>';
+    h += '<div style="text-align:center;padding:20px;font-size:12px">No showdown (hand ended)</div></div>';
+    $('wizardContent').innerHTML = h;
+    return;
+  }
+
+  var ordered = getShowdownOrder(active);
+  var suits = {s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'};
+  var h = '<div class="sec"><div class="sec-title">STEP 11: Showdown</div>';
+
+  // コミュニティボード表示
+  var allBoard = W.streets.flop.board.concat(W.streets.turn.board).concat(W.streets.river.board);
+  if (allBoard.length > 0) {
+    h += '<div style="display:flex;gap:4px;margin:0 0 6px">';
+    allBoard.forEach(function(c) {
+      h += '<div class="board-card ' + cardColor(c) + '">';
+      h += '<span>' + RANK_DISPLAY[c.charAt(0)] + '</span>';
+      h += '<span>' + (suits[c.charAt(1)] || '') + '</span>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+
+  ordered.forEach(function(p){
+    var existing = W.showdowns.find(function(s){ return s.seat === p.seat; });
+    var sdType = existing ? existing.type : '';
+    h += '<div class="sd-player">';
+    h += '<div class="name">Seat ' + p.seat + ' - ' + p.name + ' (' + p.position + ')</div>';
+    // Muck/Show + カード入力枠を一列表示
+    h += '<div class="sd-buttons" style="align-items:center">';
+    h += '<button class="btn btn-sm' + (sdType==='muck'?' selected':'') + '" onclick="setShowdown(' + p.seat + ',\'muck\')">Muck</button>';
+    h += '<button class="btn btn-sm' + (sdType==='show'?' selected':'') + '" onclick="setShowdown(' + p.seat + ',\'show\')">Show</button>';
+    // カード入力枠をボタンの右に表示
+    if (sdType === 'show' && !p.isHero) {
+      h += '<span id="sdSelected' + p.seat + '" style="display:flex;gap:6px;align-items:center;margin-left:6px"></span>';
+    } else if (sdType === 'show' && p.isHero) {
+      W.heroCards.forEach(function(c){
+        h += '<div class="selected-card-display ' + cardColor(c) + '" style="margin-left:3px"><span>' + RANK_DISPLAY[c.charAt(0)] + '</span><span>' + (suits[c.charAt(1)] || '') + '</span></div>';
+      });
+    }
+    h += '</div>';
+    // カードピッカーグリッド（入力枠の下に表示）
+    if (sdType === 'show' && !p.isHero) {
+      h += '<div id="sdCards' + p.seat + '"></div>';
+    }
+    h += '</div>';
+  });
+  h += '</div>';
+
+  $('wizardContent').innerHTML = h;
+
+  // Render card selectors for non-hero show
+  ordered.forEach(function(p){
+    var existing = W.showdowns.find(function(s){ return s.seat === p.seat; });
+    if (existing && existing.type === 'show' && !p.isHero) {
+      var cards = existing.cards || [];
+      renderCardSelector('sdCards' + p.seat, 'sdSelected' + p.seat, cards, 2, 'sd_' + p.seat, function(c){
+        existing.cards = c.slice();
+      });
+    }
+  });
+}
+
+function setShowdown(seat, type) {
+  var idx = -1;
+  for (var i = 0; i < W.showdowns.length; i++) {
+    if (W.showdowns[i].seat === seat) { idx = i; break; }
+  }
+
+  var hero = W.players.find(function(p){ return p.isHero; });
+  var isHero = hero && hero.seat === seat;
+
+  var entry = { seat: seat, type: type, cards: isHero ? W.heroCards.slice() : [] };
+
+  if (idx >= 0) {
+    // Clean up old cards
+    if (W.showdowns[idx].cards) {
+      W.showdowns[idx].cards.forEach(function(c){ delete W.usedCards[c]; });
+    }
+    W.showdowns[idx] = entry;
+  } else {
+    W.showdowns.push(entry);
+  }
+
+  renderStep11_showdown();
+}
+
+/* ----- STEP 12: Result ----- */
+function renderStep12_result() {
+  var active = getActivePlayers();
+
+  // Auto-detect if only 1 player left
+  if (active.length === 1) {
+    W.results = [{ seat: active[0].seat, result: 'win' }];
+  }
+
+  // 自動判定を試行
+  var judged = autoJudgeResults();
+  if (judged && W.results.length === 0) {
+    W.results = judged.results;
+  }
+
+  // ボード収集
+  var board = [].concat(W.streets.flop.board, W.streets.turn.board, W.streets.river.board);
+
+  var h = '<div class="sec"><div class="sec-title">STEP 12: Result</div>';
+  h += '<div class="pot-display">Final Pot: ' + formatNum(calcCurrentPot()) + '</div>';
+
+  // コミュニティボード表示
+  if (board.length > 0) {
+    h += '<div style="margin:6px 0 8px"><div style="font-size:10px;font-weight:700;color:var(--dim);margin-bottom:3px">BOARD</div>';
+    h += '<div style="display:flex;gap:3px">';
+    board.forEach(function(c) {
+      h += '<div class="mini-card ' + cardColor(c) + '" style="padding:2px 5px">';
+      h += '<span class="mc-rank">' + RANK_DISPLAY[c.charAt(0)] + '</span>';
+      h += '<span class="mc-suit">' + ({s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'}[c.charAt(1)] || '') + '</span>';
+      h += '</div>';
+    });
+    h += '</div></div>';
+  }
+
+  // 評価マップ作成
+  var evalMap = {};
+  if (judged) {
+    judged.evals.forEach(function(e) { evalMap[e.seat] = e.hand; });
+  }
+
+  active.forEach(function(p){
+    var existing = W.results.find(function(r){ return r.seat === p.seat; });
+    var res = existing ? existing.result : '';
+    var sd = W.showdowns.find(function(s){ return s.seat === p.seat; });
+    var handEval = evalMap[p.seat];
+
+    h += '<div class="result-player">';
+    // プレイヤー情報行
+    h += '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">';
+    h += '<div class="name" style="margin:0">' + p.name + '</div>';
+
+    // ホールカード表示
+    if (sd && sd.type === 'show' && sd.cards && sd.cards.length === 2) {
+      h += '<span class="hero-mini-cards">';
+      sd.cards.forEach(function(c) {
+        h += '<span class="mini-card ' + cardColor(c) + '">';
+        h += '<span class="mc-rank">' + RANK_DISPLAY[c.charAt(0)] + '</span>';
+        h += '<span class="mc-suit">' + ({s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'}[c.charAt(1)] || '') + '</span>';
+        h += '</span>';
+      });
+      h += '</span>';
+    } else if (sd && sd.type === 'muck') {
+      h += '<span style="font-size:9px;color:var(--dim)">Muck</span>';
+    }
+
+    // 役名表示
+    if (handEval) {
+      h += '<span style="font-size:10px;font-weight:700;color:var(--accent);margin-left:4px">' + handEval.name + '</span>';
+    }
+    h += '</div>';
+
+    // Win/Chop ボタン
+    h += '<div style="display:flex;gap:4px;margin-top:2px">';
+    h += '<button class="btn btn-sm' + (res==='win'?' selected':'') + '" onclick="setResult(' + p.seat + ',\'win\')">Win</button>';
+    h += '<button class="btn btn-sm' + (res==='chop'?' selected':'') + '" onclick="setResult(' + p.seat + ',\'chop\')">Chop</button>';
+    h += '</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+
+  $('wizardContent').innerHTML = h;
+}
+
+function setResult(seat, result) {
+  var idx = -1;
+  for (var i = 0; i < W.results.length; i++) {
+    if (W.results[i].seat === seat) { idx = i; break; }
+  }
+
+  if (result === 'win') {
+    // Only one winner - clear others
+    W.results = [{ seat: seat, result: 'win' }];
+  } else {
+    // Chop - toggle
+    if (idx >= 0) {
+      W.results.splice(idx, 1);
+    } else {
+      // Remove any 'win' entries, add chop
+      W.results = W.results.filter(function(r){ return r.result === 'chop'; });
+      W.results.push({ seat: seat, result: 'chop' });
+    }
+  }
+
+  renderStep12_result();
+  renderNav();
+}
+
+/* ----- STEP 13: Preview & Export ----- */
+function renderStep13_summary() {
+  var memoText = generateMemoText();
+
+  var h = '<div class="sec"><div class="sec-title">STEP 13: Preview & Export</div>';
+
+  // 保存バー
+  h += '<div class="save-bar">';
+  if (handSaved) {
+    h += '<span class="save-label">Hand saved</span>';
+    h += '<span class="saved-badge">Saved ✓</span>';
+  } else {
+    h += '<span class="save-label">Save this hand to the list</span>';
+    h += '<button class="btn btn-primary btn-sm" onclick="saveCurrentHand()">Save Hand</button>';
+  }
+  h += '</div>';
+
+  h += '<div class="sec-title" style="margin-top:8px">ハンドログ内容確認</div>';
+  h += '<div class="preview-block" style="max-height:150px" id="previewText">' + escapeHtml(memoText) + '</div>';
+
+
+  h += '</div>';
+
+  $('wizardContent').innerHTML = h;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+
+function downloadFile(filename, content) {
+  var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  show('Downloaded ' + filename);
+}
+
+/* ========== GENERATE MEMO TEXT ========== */
+function generateMemoText() {
+  var lines = [];
+
+  // Hand number
+  lines.push('#' + W.handNumber);
+  lines.push('');
+
+  // Blinds
+  lines.push('sb' + W.sb + ' bb' + W.bb + ' ante' + W.ante);
+  lines.push('');
+
+  // Hero
+  var hero = W.players.find(function(p){ return p.isHero; });
+  if (hero) {
+    var heroLine = 'hero ' + hero.seat + ' ' + W.heroStack;
+    W.heroCards.forEach(function(c){ heroLine += ' ' + cardToMemo(c); });
+    lines.push(heroLine);
+  }
+
+  // Max
+  lines.push(W.playerCount + 'max');
+  lines.push('');
+
+  // BTN
+  lines.push('btn ' + W.btnSeat);
+  lines.push('');
+
+  // Video/assets
+  if (W.videoPath) lines.push('video ' + W.videoPath);
+  if (W.ifbPath) lines.push('ifb ' + W.ifbPath);
+  if (W.ifiPath) lines.push('ifi ' + W.ifiPath);
+  if (W.videoPath || W.ifbPath || W.ifiPath) lines.push('');
+
+  // Players（着席中のみ出力）
+  var activePlayers = W.players.filter(function(p){ return p.active !== false; });
+  var posMap = assignPositions(activePlayers.length, W.btnSeat, activePlayers.map(function(p){return p.seat;}));
+  activePlayers.forEach(function(p){
+    var name = p.isHero ? (p.name || 'hero') : (p.name || 'Player' + p.seat);
+    lines.push(p.seat + ' ' + (posMap[p.seat]||'') + ' ' + name);
+  });
+  lines.push('');
+
+  // Streets
+  function formatActions(actions) {
+    if (actions.length === 0) return '';
+    var parts = [];
+    actions.forEach(function(a){
+      var s = a.seat + ' ';
+      switch(a.action) {
+        case 'fold': s += 'f'; break;
+        case 'check': s += 'x'; break;
+        case 'call': s += 'c'; break;
+        case 'bet': s += 'b' + a.amount; break;
+        case 'raise': s += 'r' + a.amount; break;
+        case 'allin': s += 'ai' + a.amount; break;
+        default: s += a.action;
+      }
+      parts.push(s);
+    });
+    return parts.join(' / ');
+  }
+
+  // Preflop
+  if (W.streets.preflop.actions.length > 0) {
+    lines.push('---pf');
+    lines.push(formatActions(W.streets.preflop.actions));
+    lines.push('');
+  }
+
+  // Flop
+  if (W.streets.flop.board.length > 0) {
+    var flopCards = W.streets.flop.board.map(cardToMemo).join(' ');
+    lines.push('---flop ' + flopCards);
+    if (W.streets.flop.actions.length > 0) {
+      lines.push(formatActions(W.streets.flop.actions));
+    }
+    lines.push('');
+  }
+
+  // Turn
+  if (W.streets.turn.board.length > 0) {
+    lines.push('---turn ' + cardToMemo(W.streets.turn.board[0]));
+    if (W.streets.turn.actions.length > 0) {
+      lines.push(formatActions(W.streets.turn.actions));
+    }
+    lines.push('');
+  }
+
+  // River
+  if (W.streets.river.board.length > 0) {
+    lines.push('---river ' + cardToMemo(W.streets.river.board[0]));
+    if (W.streets.river.actions.length > 0) {
+      lines.push(formatActions(W.streets.river.actions));
+    }
+    lines.push('');
+  }
+
+  // Showdown
+  if (W.showdowns.length > 0) {
+    lines.push('---sd');
+    W.showdowns.forEach(function(sd){
+      if (sd.type === 'show') {
+        if (sd.cards && sd.cards.length === 2) {
+          lines.push(sd.seat + ' ' + cardToMemo(sd.cards[0]) + ' ' + cardToMemo(sd.cards[1]));
+        } else {
+          lines.push(sd.seat + ' show');
+        }
+      } else {
+        lines.push(sd.seat + ' muck');
+      }
+    });
+    lines.push('');
+  }
+
+  // Result
+  if (W.results.length > 0) {
+    lines.push('---result');
+    W.results.forEach(function(r){
+      lines.push(r.seat + ' ' + r.result);
+    });
+  }
+
+  return lines.join('\n');
+}
+
+/* ========== GENERATE HAND JSON ========== */
+function generateHandJson() {
+  var posMap = assignPositions(W.players.length, W.btnSeat,
+    W.players.map(function(p){ return p.seat; }));
+  var hero = W.players.find(function(p){ return p.isHero; });
+
+  // Showdown cards map
+  var sdCards = {};
+  W.showdowns.forEach(function(sd){
+    if (sd.type === 'show' && sd.cards && sd.cards.length === 2) {
+      sdCards[sd.seat] = sd.cards.slice();
+    }
+  });
+
+  // Players array (merge hero cards + showdown cards)
+  var players = W.players.map(function(p){
+    var cards = [];
+    if (p.isHero) cards = W.heroCards.slice();
+    else if (sdCards[p.seat]) cards = sdCards[p.seat];
+    return {
+      seat: p.seat,
+      name: p.name || ('Player' + p.seat),
+      position: posMap[p.seat] || '',
+      isHero: !!p.isHero,
+      stack: p.isHero ? W.heroStack : null,
+      holeCards: cards
+    };
+  });
+
+  // Build streets with potAfter
+  var pot = W.sb + W.bb + W.ante;
+  var streetNames = ['preflop','flop','turn','river'];
+  var streetData = {};
+  var fullBoard = [];
+
+  streetNames.forEach(function(st){
+    var s = W.streets[st];
+    var actions = s.actions.map(function(a){
+      return {
+        seat: a.seat,
+        position: a.position,
+        action: a.action,
+        amount: a.amount || 0
+      };
+    });
+    actions.forEach(function(a){
+      if (a.action !== 'fold' && a.action !== 'check') {
+        pot += a.amount;
+      }
+    });
+    var obj = { actions: actions, potAfter: pot };
+    if (st !== 'preflop') {
+      obj.board = (s.board || []).slice();
+      fullBoard = fullBoard.concat(obj.board);
+    }
+    streetData[st] = obj;
+  });
+
+  // Showdown array
+  var showdown = W.showdowns.map(function(sd){
+    var p = players.find(function(pl){ return pl.seat === sd.seat; });
+    return {
+      seat: sd.seat,
+      name: p ? p.name : ('Player' + sd.seat),
+      action: sd.type,
+      holeCards: (sd.type === 'show' && sd.cards) ? sd.cards.slice() : []
+    };
+  });
+
+  // Results array
+  var results = W.results.map(function(r){
+    var p = players.find(function(pl){ return pl.seat === r.seat; });
+    return {
+      seat: r.seat,
+      name: p ? p.name : ('Player' + r.seat),
+      result: r.result,
+      amount: pot
+    };
+  });
+
+  // Summary
+  var foldedSeats = Object.keys(W.foldedSeats || {}).map(Number);
+  var allInSeats = Object.keys(W.allInSeats || {}).map(Number);
+  var heroResult = null;
+  var heroProfit = null;
+  if (hero) {
+    var hr = W.results.find(function(r){ return r.seat === hero.seat; });
+    heroResult = hr ? hr.result : 'lose';
+    var heroInvested = 0;
+    var heroPos = posMap[hero.seat];
+    if (heroPos === 'SB') heroInvested += W.sb;
+    else if (heroPos === 'BB') heroInvested += W.bb + W.ante;
+    streetNames.forEach(function(st){
+      W.streets[st].actions.forEach(function(a){
+        if (a.seat === hero.seat && a.action !== 'fold' && a.action !== 'check') {
+          heroInvested += (a.amount || 0);
+        }
+      });
+    });
+    if (hr && hr.result === 'win') heroProfit = pot - heroInvested;
+    else if (hr && hr.result === 'chop') {
+      var chopCount = W.results.filter(function(r){ return r.result === 'chop'; }).length;
+      heroProfit = Math.floor(pot / chopCount) - heroInvested;
+    } else {
+      heroProfit = -heroInvested;
+    }
+  }
+
+  return {
+    format: 'poker-hand-history',
+    version: '1.0.0',
+    exportedAt: new Date().toISOString(),
+    generator: 'Sapiens Poker Hand Wizard v0.050',
+    hand: {
+      id: W.handNumber,
+      tableSize: W.playerCount,
+      blinds: { sb: W.sb, bb: W.bb, ante: W.ante },
+      btnSeat: W.btnSeat,
+      players: players,
+      preflop: streetData.preflop,
+      flop: streetData.flop,
+      turn: streetData.turn,
+      river: streetData.river,
+      board: fullBoard,
+      showdown: showdown,
+      results: results,
+      summary: {
+        totalPot: pot,
+        rake: 0,
+        endedAtStreet: W.endedAtStreet || 'river',
+        playersFolded: foldedSeats,
+        playersAllIn: allInSeats,
+        heroResult: heroResult,
+        heroProfit: heroProfit
+      }
+    },
+    assets: {
+      videoPath: W.videoPath || '',
+      interfaceBasePath: W.ifbPath || '',
+      interfaceInfoPath: W.ifiPath || ''
+    }
+  };
+}
+
+/* ========== LOCALSTORAGE ========== */
+function loadHandsFromStorage() {
+  try {
+    var data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch(e) { return []; }
+}
+
+function saveHandsToStorage(hands) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(hands));
+  } catch(e) { show('Storage error'); }
+}
+
+function generateSummary() {
+  var hero = W.players.find(function(p){ return p.isHero; });
+  var pos = hero ? (hero.position || '') : '';
+  var cards = W.heroCards.map(function(c){ return cardDisplay(c); }).join('');
+  var result = '';
+  if (W.results.length > 0) {
+    result = W.results[0].result === 'win' ? 'Win' : 'Chop';
+  }
+  var pot = calcCurrentPot();
+  var parts = [];
+  if (pos) parts.push(pos);
+  if (cards) parts.push(cards);
+  parts.push(W.playerCount + 'max');
+  if (result) parts.push(result + ' ' + formatNum(pot));
+  return '#' + W.handNumber + '  ' + parts.join(' | ');
+}
+
+function saveCurrentHand() {
+  var hands = loadHandsFromStorage();
+  var snap = JSON.parse(JSON.stringify(W)); // deep copy
+
+  if (editingHandId) {
+    // 既存ハンドを上書き
+    var idx = -1;
+    for (var i = 0; i < hands.length; i++) {
+      if (hands[i].id === editingHandId) { idx = i; break; }
+    }
+    if (idx >= 0) {
+      hands[idx].savedAt = new Date().toISOString();
+      hands[idx].handNumber = W.handNumber;
+      hands[idx].summary = generateSummary();
+      hands[idx].state = snap;
+    }
+  } else {
+    // 新規保存
+    var id = 'hand_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    editingHandId = id;
+    hands.unshift({
+      id: id,
+      savedAt: new Date().toISOString(),
+      handNumber: W.handNumber,
+      summary: generateSummary(),
+      state: snap
+    });
+  }
+
+  saveHandsToStorage(hands);
+  handSaved = true;
+  show('Hand saved!');
+  renderStep13_summary();
+}
+
+function deleteHand(id) {
+  var hands = loadHandsFromStorage();
+  hands = hands.filter(function(h){ return h.id !== id; });
+  saveHandsToStorage(hands);
+  show('Deleted');
+  renderHandList();
+}
+
+function editHand(id) {
+  var hands = loadHandsFromStorage();
+  var entry = null;
+  for (var i = 0; i < hands.length; i++) {
+    if (hands[i].id === id) { entry = hands[i]; break; }
+  }
+  if (!entry) return;
+
+  // Wにステートを復元
+  var snap = entry.state;
+  W.step = 1;
+  W.handNumber = snap.handNumber || '01';
+  W.sb = snap.sb || 0;
+  W.bb = snap.bb || 0;
+  W.ante = snap.ante || 0;
+  W.videoPath = snap.videoPath || '';
+  W.ifbPath = snap.ifbPath || '';
+  W.ifiPath = snap.ifiPath || '';
+  W.playerCount = snap.playerCount || 6;
+  W.btnSeat = snap.btnSeat || 1;
+  W.players = snap.players ? JSON.parse(JSON.stringify(snap.players)) : [];
+  W.heroSeat = snap.heroSeat || null;
+  W.heroStack = snap.heroStack || 0;
+  W.skipStack = snap.skipStack || false;
+  W.heroCards = snap.heroCards ? snap.heroCards.slice() : [];
+  W.streets = snap.streets ? JSON.parse(JSON.stringify(snap.streets)) : {
+    preflop: { actions: [] },
+    flop:    { board: [], actions: [] },
+    turn:    { board: [], actions: [] },
+    river:   { board: [], actions: [] }
+  };
+  W.showdowns = snap.showdowns ? JSON.parse(JSON.stringify(snap.showdowns)) : [];
+  W.results = snap.results ? JSON.parse(JSON.stringify(snap.results)) : [];
+  W.usedCards = snap.usedCards ? JSON.parse(JSON.stringify(snap.usedCards)) : {};
+  W.foldedSeats = snap.foldedSeats ? JSON.parse(JSON.stringify(snap.foldedSeats)) : {};
+  W.allInSeats = snap.allInSeats ? JSON.parse(JSON.stringify(snap.allInSeats)) : {};
+  W.handEnded = snap.handEnded || false;
+  W.endedAtStreet = snap.endedAtStreet || null;
+
+  // playerCountを実際の着席数に同期（旧データ互換）
+  W.playerCount = W.players.filter(function(p){ return p.active !== false; }).length || W.playerCount;
+
+  editingHandId = id;
+  handSaved = true; // 既存ハンドなので保存済み状態
+  streetState = null;
+
+  showWizard(1);
+}
+
+function exportAllHands() {
+  var hands = loadHandsFromStorage();
+  if (hands.length === 0) { show('書き出すハンドがありません'); return; }
+  var saved = JSON.parse(JSON.stringify(W));
+  var texts = [];
+  var jsons = [];
+  hands.forEach(function(entry) {
+    if (entry.state) {
+      Object.assign(W, JSON.parse(JSON.stringify(entry.state)));
+      texts.push(generateMemoText());
+      jsons.push(generateHandJson());
+    }
+  });
+  Object.assign(W, saved);
+  var now = new Date();
+  var ts = now.getFullYear() + pad2(now.getMonth()+1) + pad2(now.getDate()) + '_' + pad2(now.getHours()) + pad2(now.getMinutes());
+  // テキストデータ
+  downloadFile('hands_' + ts + '.txt', texts.join('\n\n---\n\n'));
+  // JSONデータ
+  setTimeout(function(){
+    downloadFile('hands_' + ts + '.json', JSON.stringify(jsons, null, 2));
+  }, 500);
+}
+
+/* ========== PLAYER SETS ========== */
+var PSET_KEY = 'pokerWizardPlayerSets_v1';
+
+function loadPlayerSets() {
+  try {
+    var raw = localStorage.getItem(PSET_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+
+function savePlayerSets(sets) {
+  try { localStorage.setItem(PSET_KEY, JSON.stringify(sets)); } catch(e) {}
+}
+
+function renderPlayerSetSelect() {
+  var sets = loadPlayerSets();
+  var el = $('playerSetContent');
+  if (!el) return;
+
+  var h = '<div style="display:flex;align-items:center;gap:8px;margin:8px 0">';
+  h += '<button class="btn btn-sm" onclick="showHandList()">← 戻る</button>';
+  h += '<div class="pset-select-title" style="margin:0">プレイヤーセットを選択</div>';
+  h += '</div>';
+  h += '<button class="pset-new-btn" onclick="startWizardFresh()">＋ 新規プレイヤーセットで始める</button>';
+
+  if (sets.length > 0) {
+    h += '<div class="pset-select-title" style="margin-top:12px">保存済みセット</div>';
+    sets.forEach(function(pset) {
+      var names = (pset.players || []).filter(function(n){ return n; }).join(' / ');
+      h += '<div class="pset-card">';
+      h += '<div class="pset-card-name">' + escapeHtml(pset.name) + '</div>';
+      h += '<div class="pset-card-players">' + escapeHtml(names) + '</div>';
+      h += '<div class="pset-card-actions">';
+      h += '<button class="btn btn-primary btn-sm" onclick="applyPlayerSet(\'' + pset.id + '\')">このセットで始める</button>';
+      h += '<button class="btn btn-sm" style="color:#c0392b;border-color:#c0392b" onclick="deletePlayerSet(\'' + pset.id + '\')">削除</button>';
+      h += '</div>';
+      h += '</div>';
+    });
+  }
+
+  el.innerHTML = h;
+}
+
+function applyPlayerSet(id) {
+  var sets = loadPlayerSets();
+  var pset = null;
+  for (var i = 0; i < sets.length; i++) {
+    if (sets[i].id === id) { pset = sets[i]; break; }
+  }
+  if (!pset) { startWizardFresh(); return; }
+
+  // 10席固定で構築、セットのデータを割り当て
+  var names = pset.players || [];
+  var activeSeats = pset.activeSeats || null;
+  W.players = [];
+  for (var seat = 1; seat <= 10; seat++) {
+    var name = names[seat - 1] || '';
+    var active;
+    if (activeSeats) {
+      active = activeSeats[seat - 1] !== false;
+    } else {
+      // 旧形式: セット保存時の人数分を着席とみなす
+      active = (seat - 1) < names.length;
+    }
+    W.players.push({ seat: seat, name: name, active: active, position: '', isHero: false });
+  }
+  updatePositions();
+  // 最初の着席者をHeroに設定
+  var firstActive = null;
+  for (var k = 0; k < W.players.length; k++) {
+    if (W.players[k].active !== false) { firstActive = W.players[k]; break; }
+  }
+  if (firstActive) { firstActive.isHero = true; W.heroSeat = firstActive.seat; }
+
+  showWizard(1);
+}
+
+function deletePlayerSet(id) {
+  var sets = loadPlayerSets().filter(function(s){ return s.id !== id; });
+  savePlayerSets(sets);
+  show('セットを削除しました');
+  renderPlayerSetSelect();
+}
+
+function saveCurrentPlayersAsSet() {
+  // 名前入力欄から最新の名前を同期
+  var inputs = document.querySelectorAll('#playerList input');
+  for (var i = 0; i < inputs.length; i++) {
+    var idx = parseInt(inputs[i].getAttribute('data-idx'));
+    if (!isNaN(idx) && W.players[idx]) {
+      W.players[idx].name = inputs[i].value;
+    }
+  }
+
+  var names = W.players.map(function(p){ return p.name || ''; });
+  var displayNames = names.filter(function(n){ return n; }).join(' / ') || '（名前未入力）';
+
+  // セット名入力UIを表示
+  var existing = $('psetSaveForm');
+  if (existing) { existing.remove(); return; } // トグル
+
+  var form = document.createElement('div');
+  form.id = 'psetSaveForm';
+  form.style.cssText = 'margin:8px 0;padding:8px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:6px';
+  form.innerHTML =
+    '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">セット名を入力してください</div>' +
+    '<div style="font-size:11px;color:var(--dim);margin-bottom:6px">' + escapeHtml(displayNames) + '</div>' +
+    '<div class="pset-name-input-row">' +
+    '<input type="text" id="psetNameInput" placeholder="例: Manila 0/5卓" maxlength="30">' +
+    '<button class="btn btn-primary btn-sm" onclick="confirmSavePlayerSet()">保存</button>' +
+    '<button class="btn btn-sm" onclick="document.getElementById(\'psetSaveForm\').remove()">×</button>' +
+    '</div>';
+
+  // playerListセクションの後に挿入
+  var sec = document.querySelector('#playerList');
+  if (sec && sec.parentNode) {
+    sec.parentNode.appendChild(form);
+  }
+  var inp = $('psetNameInput');
+  if (inp) inp.focus();
+}
+
+function confirmSavePlayerSet() {
+  var inp = $('psetNameInput');
+  var name = inp ? inp.value.trim() : '';
+  if (!name) { show('セット名を入力してください'); return; }
+
+  var names = W.players.map(function(p){ return p.name || ''; });
+  var activeSeats = W.players.map(function(p){ return p.active !== false; });
+
+  var sets = loadPlayerSets();
+  var id = 'pset_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+  sets.push({ id: id, name: name, players: names, activeSeats: activeSeats, createdAt: new Date().toISOString() });
+  savePlayerSets(sets);
+
+  var form = $('psetSaveForm');
+  if (form) form.remove();
+  show('「' + name + '」として保存しました ✓');
+}
+
+/* ========== VIEW SWITCH ========== */
+function showHandList() {
+  viewMode = 'list';
+  $('listView').style.display = '';
+  $('wizardView').style.display = 'none';
+  $('playerSetView').style.display = 'none';
+  renderHandList();
+}
+
+function showPlayerSetSelect() {
+  viewMode = 'pset';
+  $('listView').style.display = 'none';
+  $('wizardView').style.display = 'none';
+  $('playerSetView').style.display = '';
+  renderPlayerSetSelect();
+}
+
+function showWizard(step) {
+  viewMode = 'wizard';
+  $('listView').style.display = 'none';
+  $('playerSetView').style.display = 'none';
+  $('wizardView').style.display = '';
+  navigateTo(step || 1);
+}
+
+function goToHandList() {
+  if (!handSaved && viewMode === 'wizard' && W.step > 1) {
+    confirmUnsaved(function(){ showHandList(); });
+    return;
+  }
+  showHandList();
+}
+
+function confirmUnsaved(onProceed) {
+  var modal = $('unsavedModal');
+  modal.classList.add('active');
+  var btnSave = $('unsavedModalSave');
+  var btnDiscard = $('unsavedModalDiscard');
+  // クローンでリスナーリセット
+  var newSave = btnSave.cloneNode(true);
+  var newDiscard = btnDiscard.cloneNode(true);
+  btnSave.parentNode.replaceChild(newSave, btnSave);
+  btnDiscard.parentNode.replaceChild(newDiscard, btnDiscard);
+  newSave.addEventListener('click', function() {
+    modal.classList.remove('active');
+    saveCurrentHand();
+    onProceed();
+  });
+  newDiscard.addEventListener('click', function() {
+    modal.classList.remove('active');
+    onProceed();
+  });
+}
+
+function resetWizardState() {
+  W.step = 1;
+  W.handNumber = nextHandNumber();
+  W.sb = 0; W.bb = 0; W.ante = 0;
+  W.videoPath = ''; W.ifbPath = ''; W.ifiPath = '';
+  W.playerCount = 6; W.btnSeat = 1;
+  W.players = [];
+  W.heroSeat = null; W.heroStack = 0; W.skipStack = false; W.heroCards = [];
+  W.streets = {
+    preflop: { actions: [] },
+    flop:    { board: [], actions: [] },
+    turn:    { board: [], actions: [] },
+    river:   { board: [], actions: [] }
+  };
+  W.showdowns = []; W.results = [];
+  W.usedCards = {}; W.foldedSeats = {}; W.allInSeats = {};
+  W.handEnded = false; W.endedAtStreet = null;
+  streetState = null;
+  handSaved = false;
+  editingHandId = null;
+}
+
+function startNewHand() {
+  if (!handSaved && viewMode === 'wizard' && W.step > 1) {
+    confirmUnsaved(function(){ doStartNewHand(); });
+    return;
+  }
+  doStartNewHand();
+}
+
+function doStartNewHand() {
+  resetWizardState();
+  var sets = loadPlayerSets();
+  if (sets.length > 0) {
+    showPlayerSetSelect();
+  } else {
+    showWizard(1);
+  }
+}
+
+function startWizardFresh() {
+  // プレイヤーセット選択をスキップしてウィザード開始
+  showWizard(1);
+}
+
+function nextHandNumber() {
+  var hands = loadHandsFromStorage();
+  if (hands.length === 0) return '01';
+  // 最大ハンド番号+1
+  var max = 0;
+  hands.forEach(function(h){
+    var n = parseInt(h.handNumber, 10) || 0;
+    if (n > max) max = n;
+  });
+  var next = max + 1;
+  return next < 10 ? '0' + next : '' + next;
+}
+
+/* ========== HAND LIST RENDER ========== */
+function renderHandList() {
+  var hands = loadHandsFromStorage();
+  var el = $('handListContainer');
+  if (!el) return;
+
+  var exportBar = $('exportBar');
+  if (hands.length === 0) {
+    el.innerHTML = '<div class="empty-state">まだハンドが記録されていません。<br>「+ New Hand」からはじめましょう。</div>';
+    if (exportBar) exportBar.style.display = 'none';
+    return;
+  }
+  if (exportBar) exportBar.style.display = 'block';
+
+  var h = '';
+  hands.forEach(function(hand){
+    var date = '';
+    try {
+      var d = new Date(hand.savedAt);
+      date = d.getFullYear() + '/' + pad2(d.getMonth()+1) + '/' + pad2(d.getDate()) +
+             ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+    } catch(e) {}
+
+    h += '<div class="hand-card">';
+    h += '<div class="hand-card-top">';
+    h += '<div class="hand-card-num">#' + (hand.handNumber || '?') + '</div>';
+    h += '<div class="hand-card-summary">' + escapeHtml(hand.summary || '') + '</div>';
+    h += '</div>';
+    h += '<div class="hand-card-date">' + date + '</div>';
+    h += '<div class="hand-card-actions">';
+    h += '<button class="btn btn-primary" onclick="editHand(\'' + hand.id + '\')">Edit</button>';
+    h += '<button class="btn btn-sm" style="color:#c0392b;border-color:#c0392b" onclick="deleteHand(\'' + hand.id + '\')">Delete</button>';
+    h += '</div>';
+    h += '</div>';
+  });
+  el.innerHTML = h;
+}
+
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+/* ========== NUMERIC KEYPAD ========== */
+var numpadTarget = null;
+var isDesktop = function(){ return window.innerWidth >= 500; };
+
+function showNumpad(inputEl) {
+  numpadTarget = inputEl;
+  var np = $('numpad');
+  if (isDesktop()) {
+    // デスクトップ: #numpadWrap内に移動してstatic表示
+    var wrap = $('numpadWrap');
+    if (wrap && np.parentNode !== wrap) wrap.appendChild(np);
+  } else {
+    // モバイル: bodyに戻してfixed表示
+    if (np.parentNode !== document.body) document.body.appendChild(np);
+  }
+  np.classList.add('show');
+  // 入力フィールドをスクロールして見えるように
+  setTimeout(function(){ inputEl.scrollIntoView({block:'nearest',behavior:'smooth'}); }, 50);
+}
+
+// キーボード入力を数値のみに制限
+document.addEventListener('keydown', function(e) {
+  var el = e.target;
+  if (el.tagName !== 'INPUT' || el.getAttribute('inputmode') !== 'numeric') return;
+  // 許可キー: 数字, Backspace, Delete, Tab, Arrow, Enter, Home, End
+  if (/^[0-9]$/.test(e.key) || ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Enter','Home','End'].indexOf(e.key) >= 0) {
+    // numpadが開いていたら閉じる
+    if (numpadTarget && numpadTarget !== el) hideNumpad();
+    return;
+  }
+  // Ctrl/Cmd + A/C/V/X は許可
+  if ((e.ctrlKey || e.metaKey) && ['a','c','v','x'].indexOf(e.key.toLowerCase()) >= 0) return;
+  e.preventDefault();
+});
+
+// ペースト時に数値以外を除去
+document.addEventListener('paste', function(e) {
+  var el = e.target;
+  if (el.tagName !== 'INPUT' || el.getAttribute('inputmode') !== 'numeric') return;
+  e.preventDefault();
+  var text = (e.clipboardData || window.clipboardData).getData('text');
+  var nums = text.replace(/[^0-9]/g, '');
+  if (nums) { document.execCommand('insertText', false, nums); }
+});
+
+// 数値フィールドの自動遷移順序（IDリスト）
+var numpadAutoNext = { 's1sb': 's1bb', 's1bb': 's1ante' };
+
+function hideNumpad() {
+  $('numpad').classList.remove('show');
+  var prev = numpadTarget;
+  if (numpadTarget) {
+    numpadTarget.dispatchEvent(new Event('input', {bubbles:true}));
+    numpadTarget = null;
+  }
+  // 自動遷移: 次のフィールドにフォーカス+numpad表示
+  if (prev && prev.id && numpadAutoNext[prev.id]) {
+    var nextEl = $(numpadAutoNext[prev.id]);
+    if (nextEl) {
+      setTimeout(function(){
+        nextEl.focus();
+        showNumpad(nextEl);
+      }, 100);
+    }
+  }
+}
+
+function nkPress(key) {
+  if (!numpadTarget) return;
+  var val = numpadTarget.value || '';
+  if (key === 'del') {
+    val = val.slice(0, -1);
+  } else {
+    if (val === '0') { val = key; }
+    else { val = val + key; }
+    if (val.length > 10) return;
+  }
+  numpadTarget.value = val;
+  numpadTarget.dispatchEvent(new Event('input', {bubbles:true}));
+  // スライダーと同期
+  var slider = $('amountSlider');
+  if (slider) {
+    var num = parseInt(val) || 0;
+    if (num >= parseInt(slider.min) && num <= parseInt(slider.max)) {
+      slider.value = num;
+    }
+  }
+}
+
+/* ========== COLOR PANEL ========== */
+var CP_DEFAULTS = {std:'#144d75', fill:'#063b63', bg:'#eff6f8', fillOpacity:10};
+var cpBackup = null;
+var cpFillOpacity = 10;
+var cpFavs = JSON.parse(localStorage.getItem('pokerLoggerFavs') || '[]');
+var CP_DEFAULT_FAVS = [
+  {std:'#144d75', fill:'#063b63', bg:'#eff6f8', fillOpacity:10},
+  {std:'#00d801', fill:'#00e100', bg:'#000000', fillOpacity:20},
+  {std:'#ff0901', fill:'#ffbe00', bg:'#85eeff', fillOpacity:20},
+  {std:'#ebebeb', fill:'#ffffff', bg:'#000000', fillOpacity:10}
+];
+if (!cpFavs.length || cpFavs.every(function(f){return !f})) {
+  cpFavs = CP_DEFAULT_FAVS.slice();
+  localStorage.setItem('pokerLoggerFavs', JSON.stringify(cpFavs));
+}
+
+function hexToRgba(hex, a) {
+  var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return 'rgba('+r+','+g+','+b+','+a+')';
+}
+function rgbToHex(c) {
+  if (!c) return '#000000';
+  c = c.trim();
+  if (c.charAt(0) === '#') return c.length === 7 ? c : c;
+  var m = c.match(/(\d+)/g);
+  if (!m || m.length < 3) return '#000000';
+  return '#' + ((1<<24)+(parseInt(m[0])<<16)+(parseInt(m[1])<<8)+parseInt(m[2])).toString(16).slice(1);
+}
+
+function applyColorVars(std, fill, bg, opacity) {
+  if (typeof opacity === 'number') cpFillOpacity = opacity;
+  var op = cpFillOpacity / 100;
+  var root = document.documentElement.style;
+  root.setProperty('--bg', bg);
+  root.setProperty('--text', std);
+  root.setProperty('--accent', std);
+  root.setProperty('--dim', std);
+  root.setProperty('--border', std);
+  root.setProperty('--accent-bg', hexToRgba(fill, op));
+  root.setProperty('--accent-border', hexToRgba(std, .35));
+  root.setProperty('--std', hexToRgba(fill, op));
+}
+
+function updateCpPreview(std, fill, bg) {
+  var tint = hexToRgba(fill, cpFillOpacity / 100);
+  document.getElementById('cpPreview').style.background = bg;
+  var h = document.getElementById('cpSampleHeader');
+  h.style.background = std; h.style.color = bg;
+  var jc = document.getElementById('cpSampleCard');
+  if(jc){jc.style.borderColor = std; jc.style.color = std; jc.style.background = tint;}
+  ['cpSampleHand1','cpSampleHand2'].forEach(function(id){
+    var c = document.getElementById(id);
+    if(c){c.style.borderColor = std; c.style.color = std; c.style.background = bg;}
+  });
+  ['cpSampleEditBtn','cpSampleEditBtn2'].forEach(function(id){
+    var b = document.getElementById(id);
+    if(b){b.style.borderColor = std; b.style.color = std; b.style.background = bg;}
+  });
+  ['cpSampleActBtn'].forEach(function(id){
+    var b = document.getElementById(id);
+    if(b){b.style.background = std; b.style.color = bg;}
+  });
+  var ab2 = document.getElementById('cpSampleActBtn2');
+  if(ab2){ab2.style.borderColor = std; ab2.style.color = std; ab2.style.background = 'transparent';}
+  var ctrl = document.getElementById('cpControls');
+  ctrl.style.background = bg; ctrl.style.borderColor = std; ctrl.style.color = std;
+  var ab = document.getElementById('cpApplyBtn');
+  if(ab){ab.style.background = std; ab.style.color = bg;}
+  ['cpResetBtn','cpCloseBtn'].forEach(function(id){
+    var b = document.getElementById(id);
+    if(b){b.style.background = 'transparent'; b.style.borderColor = std; b.style.color = std;}
+  });
+}
+
+function openColorPanel() {
+  var cs = getComputedStyle(document.documentElement);
+  var cur = {
+    std: rgbToHex(cs.getPropertyValue('--accent').trim()),
+    fill: rgbToHex(cs.getPropertyValue('--border').trim()),
+    bg: rgbToHex(cs.getPropertyValue('--bg').trim())
+  };
+  cpBackup = {std:cur.std, fill:cur.fill, bg:cur.bg, fillOpacity:cpFillOpacity};
+  document.getElementById('cpFillOpacity').value = cpFillOpacity;
+  document.getElementById('cpFillOpacityVal').textContent = cpFillOpacity + '%';
+  document.getElementById('cpInput-std').value = cur.std;
+  document.getElementById('cpInput-fill').value = cur.fill;
+  document.getElementById('cpInput-bg').value = cur.bg;
+  document.getElementById('cpSwatch-std').style.background = cur.std;
+  document.getElementById('cpSwatch-fill').style.background = cur.fill;
+  document.getElementById('cpSwatch-bg').style.background = cur.bg;
+  document.getElementById('cpHex-std').textContent = cur.std;
+  document.getElementById('cpHex-fill').textContent = cur.fill;
+  document.getElementById('cpHex-bg').textContent = cur.bg;
+  updateCpPreview(cur.std, cur.fill, cur.bg);
+  renderFavSlots();
+  document.getElementById('colorPanel').style.display = 'flex';
+}
+
+function onCpChange(key, val) {
+  document.getElementById('cpSwatch-'+key).style.background = val;
+  document.getElementById('cpHex-'+key).textContent = val;
+  var std = document.getElementById('cpInput-std').value;
+  var fill = document.getElementById('cpInput-fill').value;
+  var bg = document.getElementById('cpInput-bg').value;
+  applyColorVars(std, fill, bg);
+  updateCpPreview(std, fill, bg);
+}
+
+function onFillOpacityChange(val) {
+  cpFillOpacity = parseInt(val);
+  document.getElementById('cpFillOpacityVal').textContent = cpFillOpacity + '%';
+  var std = document.getElementById('cpInput-std').value;
+  var fill = document.getElementById('cpInput-fill').value;
+  var bg = document.getElementById('cpInput-bg').value;
+  applyColorVars(std, fill, bg);
+  updateCpPreview(std, fill, bg);
+}
+
+function applyColors() {
+  var std = document.getElementById('cpInput-std').value;
+  var fill = document.getElementById('cpInput-fill').value;
+  var bg = document.getElementById('cpInput-bg').value;
+  localStorage.setItem('pokerLoggerColors', JSON.stringify({std:std, fill:fill, bg:bg, fillOpacity:cpFillOpacity}));
+  cpBackup = null;
+  document.getElementById('colorPanel').style.display = 'none';
+  showToast('Colors saved');
+}
+
+function resetColors() {
+  cpFillOpacity = CP_DEFAULTS.fillOpacity;
+  applyColorVars(CP_DEFAULTS.std, CP_DEFAULTS.fill, CP_DEFAULTS.bg, cpFillOpacity);
+  localStorage.removeItem('pokerLoggerColors');
+  var keys = ['std','fill','bg'];
+  keys.forEach(function(k){
+    document.getElementById('cpInput-'+k).value = CP_DEFAULTS[k];
+    document.getElementById('cpSwatch-'+k).style.background = CP_DEFAULTS[k];
+    document.getElementById('cpHex-'+k).textContent = CP_DEFAULTS[k];
+  });
+  document.getElementById('cpFillOpacity').value = cpFillOpacity;
+  document.getElementById('cpFillOpacityVal').textContent = cpFillOpacity + '%';
+  updateCpPreview(CP_DEFAULTS.std, CP_DEFAULTS.fill, CP_DEFAULTS.bg);
+  showToast('Reset to defaults');
+}
+
+function closeColorPanel() {
+  if (cpBackup) {
+    cpFillOpacity = cpBackup.fillOpacity || 10;
+    applyColorVars(cpBackup.std, cpBackup.fill, cpBackup.bg, cpFillOpacity);
+  }
+  cpBackup = null;
+  document.getElementById('colorPanel').style.display = 'none';
+}
+
+function renderFavSlots() {
+  var html = '';
+  for (var i = 0; i < 5; i++) {
+    var fav = cpFavs[i];
+    if (fav) {
+      html += '<div style="display:flex;flex-direction:column;align-items:center;gap:1px">';
+      html += '<div onclick="loadFav('+i+')" style="display:flex;gap:1px;cursor:pointer;padding:2px;border:1px solid;border-radius:4px">';
+      var favOp = (fav.fillOpacity || 10) / 100;
+      html += '<div style="width:13px;height:13px;border-radius:50%;background:'+fav.std+'"></div>';
+      html += '<div style="width:13px;height:13px;border-radius:50%;background:'+hexToRgba(fav.fill, favOp)+';border:1px solid '+fav.fill+'"></div>';
+      html += '<div style="width:13px;height:13px;border-radius:50%;background:'+fav.bg+';border:1px solid '+fav.fill+'"></div>';
+      html += '</div>';
+      html += '<span onclick="event.stopPropagation();deleteFav('+i+')" style="font-size:10px;cursor:pointer;opacity:.7;line-height:1;padding:1px 2px">\u00d7</span>';
+      html += '</div>';
+    } else {
+      html += '<div onclick="saveFavAt('+i+')" style="width:47px;height:21px;border:1px dashed;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:8px;opacity:.5">empty</div>';
+    }
+  }
+  document.getElementById('cpFavSlots').innerHTML = html;
+}
+
+function saveFavAt(idx) {
+  var std = document.getElementById('cpInput-std').value;
+  var fill = document.getElementById('cpInput-fill').value;
+  var bg = document.getElementById('cpInput-bg').value;
+  if (cpFavs[idx] && !confirm('Fav ' + (idx+1) + ' \u3092\u4E0A\u66F8\u304D\u3057\u307E\u3059\u304B\uFF1F')) return;
+  cpFavs[idx] = {std:std, fill:fill, bg:bg, fillOpacity:cpFillOpacity};
+  localStorage.setItem('pokerLoggerFavs', JSON.stringify(cpFavs));
+  renderFavSlots();
+  showToast('Saved to Fav ' + (idx+1));
+}
+
+function deleteFav(idx) {
+  if (!confirm('Fav ' + (idx+1) + ' \u3092\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F')) return;
+  cpFavs[idx] = null;
+  localStorage.setItem('pokerLoggerFavs', JSON.stringify(cpFavs));
+  renderFavSlots();
+  showToast('Fav ' + (idx+1) + ' deleted');
+}
+
+function loadFav(idx) {
+  var fav = cpFavs[idx];
+  if (!fav) return;
+  cpFillOpacity = fav.fillOpacity || 10;
+  document.getElementById('cpInput-std').value = fav.std;
+  document.getElementById('cpInput-fill').value = fav.fill;
+  document.getElementById('cpInput-bg').value = fav.bg;
+  document.getElementById('cpSwatch-std').style.background = fav.std;
+  document.getElementById('cpSwatch-fill').style.background = fav.fill;
+  document.getElementById('cpSwatch-bg').style.background = fav.bg;
+  document.getElementById('cpHex-std').textContent = fav.std;
+  document.getElementById('cpHex-fill').textContent = fav.fill;
+  document.getElementById('cpHex-bg').textContent = fav.bg;
+  document.getElementById('cpFillOpacity').value = cpFillOpacity;
+  document.getElementById('cpFillOpacityVal').textContent = cpFillOpacity + '%';
+  applyColorVars(fav.std, fav.fill, fav.bg, cpFillOpacity);
+  updateCpPreview(fav.std, fav.fill, fav.bg);
+}
+
+// Restore colors on load
+(function(){
+  var saved = localStorage.getItem('pokerLoggerColors');
+  if (saved) {
+    try {
+      var c = JSON.parse(saved);
+      if (c.std && c.fill && c.bg) {
+        if (typeof c.fillOpacity === 'number') cpFillOpacity = c.fillOpacity;
+        applyColorVars(c.std, c.fill, c.bg, cpFillOpacity);
+      }
+    } catch(e){}
+  }
+})();
+
+/* ========== INIT ========== */
+function init() {
+  showHandList();
+}
+
+init();
+</script>
+</body>
+</html>

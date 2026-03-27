@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sapiens Poker Wizard - Manual</title>
+<style>
+:root {
+  --bg:#eff6f8; --border:#144d75; --text:#144d75;
+  --accent:#144d75; --dim:#144d75;
+  --accent-bg:rgba(6,59,99,.10); --std:rgba(6,59,99,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:13px;padding:0 0 40px}
+header{background:var(--accent);padding:8px 16px;text-align:center;position:sticky;top:0;z-index:100;border-radius:0 0 5px 5px}
+header h1{font-size:14px;font-weight:800;color:var(--bg);letter-spacing:.03em}
+.close-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:transparent;border:1px solid var(--bg);color:var(--bg);font-size:11px;font-weight:700;padding:4px 14px;border-radius:5px;cursor:pointer;text-decoration:none;transition:opacity .15s}
+.close-btn:hover{opacity:.7}
+.wrap{max-width:640px;margin:0 auto;padding:16px 20px}
+section{margin-top:16px}
+h2{font-size:14px;color:var(--accent);padding-bottom:6px;border-bottom:2px solid var(--accent);margin-bottom:8px;font-weight:800}
+h3{font-size:12.5px;color:var(--accent);margin:12px 0 6px;font-weight:700}
+p{margin:6px 0}
+ol{padding-left:20px;margin:6px 0}
+ul{padding-left:18px;margin:6px 0}
+li{margin:3px 0}
+code{font-family:"SFMono-Regular",Consolas,monospace;background:var(--accent-bg);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:12px;color:var(--accent);font-weight:600}
+.note{border-left:4px solid var(--accent);background:var(--accent-bg);padding:8px 12px;border-radius:0 5px 5px 0;margin:8px 0;font-size:12.5px}
+.note strong{font-weight:800}
+table{width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:12.5px;border-radius:5px;overflow:hidden}
+th,td{border:1px solid var(--border);padding:6px 10px;text-align:left}
+th{background:var(--accent);color:var(--bg);font-weight:800;font-size:11px}
+td{background:var(--bg)}
+tr:nth-child(even) td{background:var(--std)}
+.step-flow{display:flex;align-items:center;gap:6px;margin:8px 0;flex-wrap:wrap}
+.step-flow .step{background:var(--accent);color:var(--bg);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0}
+.step-flow .label{font-size:11px;font-weight:700}
+.step-flow .arrow{color:var(--accent);font-weight:800;font-size:12px}
+</style>
+</head>
+<body>
+<header style="position:relative">
+  <h1>Sapiens Poker Wizard - Manual</h1>
+  <a href="javascript:window.close()" class="close-btn">Close</a>
+</header>
+
+<div class="wrap">
+
+<section>
+<h2>Poker Wizardとは</h2>
+<p>ポーカーのハンド履歴をステップバイステップで記録するツールです。13ステップのウィザード形式で、プリフロップからショーダウンまでを漏れなく入力できます。</p>
+<p>入力したハンドはブラウザのlocalStorageに保存され、テキストファイルとして書き出しが可能です。</p>
+</section>
+
+<section>
+<h2>画面構成</h2>
+<h3>Hand Records（一覧画面）</h3>
+<p>記録済みのハンド一覧を表示します。各ハンドの編集・削除、全ハンドの一括書き出しができます。</p>
+<h3>Wizard（入力画面）</h3>
+<p>「+ New Hand」ボタンで新しいハンドの入力を開始します。ステップバーで進行状況を確認しながら入力します。</p>
+</section>
+
+<section>
+<h2>13ステップの流れ</h2>
+
+<table>
+<tr><th>Step</th><th>内容</th><th>入力項目</th></tr>
+<tr><td>1</td><td>ブラインド設定</td><td>SB / BB / Ante</td></tr>
+<tr><td>2</td><td>プレイヤー設定</td><td>人数・名前・ポジション・ヒーロー選択</td></tr>
+<tr><td>3</td><td>ヒーローカード</td><td>ホールカード2枚 + スタック額</td></tr>
+<tr><td>4</td><td>プリフロップ</td><td>各プレイヤーのアクション</td></tr>
+<tr><td>5</td><td>フロップボード</td><td>コミュニティカード3枚</td></tr>
+<tr><td>6</td><td>フロップアクション</td><td>各プレイヤーのアクション</td></tr>
+<tr><td>7</td><td>ターンボード</td><td>ターンカード1枚</td></tr>
+<tr><td>8</td><td>ターンアクション</td><td>各プレイヤーのアクション</td></tr>
+<tr><td>9</td><td>リバーボード</td><td>リバーカード1枚</td></tr>
+<tr><td>10</td><td>リバーアクション</td><td>各プレイヤーのアクション</td></tr>
+<tr><td>11</td><td>ショーダウン</td><td>Show / Muck + ヴィランのカード</td></tr>
+<tr><td>12</td><td>結果</td><td>Win / Lose / Chop の判定</td></tr>
+<tr><td>13</td><td>確認・保存</td><td>ハンドログの確認と保存</td></tr>
+</table>
+
+<div class="note">
+<strong>ヒント:</strong> フロップ前に全員フォールドした場合、Step 5以降は自動的にスキップされます。
+</div>
+</section>
+
+<section>
+<h2>アクション入力</h2>
+<p>各ストリートで以下のアクションを入力できます。</p>
+<table>
+<tr><th>アクション</th><th>略称</th><th>説明</th></tr>
+<tr><td>Fold</td><td>F</td><td>降りる</td></tr>
+<tr><td>Check</td><td>X</td><td>チェック</td></tr>
+<tr><td>Call</td><td>C</td><td>コール（現在のベット額に合わせる）</td></tr>
+<tr><td>Bet</td><td>B</td><td>ベット（スライダーで金額指定）</td></tr>
+<tr><td>Raise</td><td>R</td><td>レイズ（スライダーで金額指定）</td></tr>
+<tr><td>All-in</td><td>A</td><td>オールイン</td></tr>
+</table>
+
+<div class="note">
+<strong>ミニマムレイズ:</strong> レイズ額が最小レイズ未満の場合、トースト警告が表示されアクションが拒否されます。
+</div>
+</section>
+
+<section>
+<h2>カード選択</h2>
+<p>ランク（A〜2）を選択した後、スート（♠♣♥♦）を選択する2ステップ方式です。</p>
+<p>既に使用されているカードはグレーアウト表示され、選択できません。</p>
+<p>選択済みカードの右上「×」バッジをタップすると削除できます。</p>
+</section>
+
+<section>
+<h2>ハンドの編集</h2>
+<p>Hand Records画面で「Edit」ボタンをタップすると、保存済みハンドを再編集できます。</p>
+<p>編集モードでは、ステップバーの任意のステップにジャンプ可能です（新規入力時は前方のみ）。</p>
+</section>
+
+<section>
+<h2>データの書き出し</h2>
+<p>「ハンド記録を書き出し」ボタンで、全ハンドのテキストとJSONを同時にダウンロードできます。</p>
+<ul>
+<li><strong>.txt:</strong> 全ハンドのメモテキストを <code>---</code> 区切りで結合</li>
+<li><strong>.json:</strong> 全ハンドのhandJsonを配列で格納（scenes.json形式）</li>
+</ul>
+</section>
+
+<section>
+<h2>カラーカスタマイズ</h2>
+<p>フッターのパレットアイコン（🎨）をタップすると、カラーパネルが開きます。</p>
+<ul>
+<li><strong>基調色:</strong> テキスト・ボーダー・アクセントの色</li>
+<li><strong>中間色:</strong> カード背景やハイライトの色</li>
+<li><strong>背景色:</strong> ページ全体の背景色</li>
+<li><strong>中間色 透明度:</strong> 中間色の不透明度をスライダーで調整</li>
+</ul>
+<p>FAVスロット（5枠）にお気に入りの配色を保存・呼び出しできます。設定はSapiens Poker Loggerと共有されます。</p>
+</section>
+
+<section>
+<h2>データの保存先</h2>
+<p>すべてのデータはブラウザの <code>localStorage</code> に保存されます。サーバーにはデータを送信しません。</p>
+<div class="note" style="border-left-color:#e74c3c;background:rgba(231,76,60,.08)">
+<strong>注意:</strong> ブラウザのデータを消去するとハンド履歴も失われます。定期的に書き出しを行ってください。
+</div>
+</section>
+
+<div style="text-align:center;font-size:9px;color:var(--text);opacity:.5;padding:20px 0 4px">&copy; 2026 Sapiens &amp; Co.</div>
+</div>
+</body>
+</html>

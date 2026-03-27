@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <!--
-  Poker Hand Wizard v0.052
+  Poker Hand Wizard v0.062
   Step-by-step guided hand history input
 -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Poker Hand Wizard v0.052</title>
+<title>Poker Hand Wizard v0.062</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -84,7 +84,7 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
 .row input:focus,.row select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
 .row input[readonly]{cursor:pointer}
 .amount-input-row input[readonly]{cursor:pointer}
-.numpad-active{outline:none!important;border-color:var(--accent)!important;box-shadow:0 0 0 2.5px var(--accent)!important;background:var(--accent-bg)!important}
+.numpad-active{outline:none!important;border-color:var(--accent)!important;box-shadow:0 0 0 2.5px var(--accent)!important;background:var(--accent-bg)!important;caret-color:var(--accent)}
 
 /* buttons */
 .btn{border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;background:var(--bg);color:var(--text)}
@@ -101,7 +101,7 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
 }
 .nav-row-inner{
   max-width:430px;margin:0 auto;
-  padding:4px 10px calc(4px + env(safe-area-inset-bottom));
+  padding:4px 20px calc(12px + env(safe-area-inset-bottom));
   display:flex;gap:6px;
 }
 .nav-row .btn{flex:1;text-align:center;padding:7px 6px;font-size:12px;font-weight:700}
@@ -113,6 +113,7 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
 .player-row .pos-label{font-size:10px;font-weight:700;width:30px;text-align:center;flex-shrink:0;color:var(--accent)}
 .player-row input{flex:1;border:1px solid var(--accent-border);border-radius:4px;padding:2px 5px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit}
 .player-row input:focus{outline:none;border-color:var(--accent)}
+#s3stack{padding:10px 8px;font-size:15px}
 #s3stack::placeholder,#s1ante::placeholder{font-size:10px}
 #s1sb:focus,#s1bb:focus,#s1ante:focus,#s3stack:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
 .hero-badge,.btn-badge{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--dim);transition:all .15s;flex-shrink:0}
@@ -205,6 +206,95 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
 .hand-card-actions{display:flex;gap:4px;margin-top:5px}
 .hand-card-actions .btn{flex:1;text-align:center;font-size:11px;padding:5px 4px}
 .empty-state{text-align:center;padding:40px 20px;color:var(--dim);font-size:12px}
+
+/* ===== Start / Next guide blinking ===== */
+@keyframes blink-guide{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes blink-guide-fast{0%,100%{opacity:1}50%{opacity:0}}
+.start-guide{font-size:10px;color:var(--accent);text-align:center;animation:blink-guide 4s ease-in-out infinite;letter-spacing:.03em;font-weight:700;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);white-space:nowrap;margin-bottom:4px}
+.session-guide{font-size:10px;color:var(--accent);text-align:center;animation:blink-guide-fast 2s ease-in-out infinite;letter-spacing:.03em;font-weight:700;white-space:nowrap;margin:2px 0 4px}
+
+/* ===== First Guide ===== */
+.guide-box{background:var(--std);border:1px solid var(--border);border-radius:7px;padding:8px 12px;margin:6px 0}
+.guide-body{overflow:hidden;transition:max-height .3s ease,opacity .3s ease;opacity:1}
+.guide-body.collapsed{max-height:0 !important;opacity:0;padding:0;margin:0}
+.guide-box .guide-title{font-size:13px;font-weight:800;color:var(--accent);margin-bottom:4px;letter-spacing:.03em}
+.guide-box .guide-steps{list-style:none;padding:0;margin:0}
+.guide-box .guide-steps li{font-size:12px;color:var(--text);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;line-height:1.4;min-height:32px;box-sizing:border-box}
+.guide-box .guide-steps li:last-child{border-bottom:none}
+.guide-box .guide-steps .step-num{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:var(--bg);color:var(--text);font-size:10px;font-weight:800;text-align:center;line-height:20px}
+.guide-box .guide-steps .step-text{flex:1;display:flex;align-items:center;flex-wrap:wrap}
+.guide-box .guide-steps .step-text strong{color:var(--accent)}
+.guide-box .guide-steps .step-text .step-sub{font-size:11px;color:var(--dim);margin-left:4px}
+
+/* ===== Journey/Session accordion ===== */
+.trip-item{background:var(--std);border:1px solid var(--border);border-radius:7px;padding:8px 12px;margin:4px 0;transition:border-color .25s ease}
+.trip-item.expanded{border-color:var(--accent)}
+.trip-header-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px}
+.trip-title{font-size:14px;font-weight:800;color:var(--text)}
+.trip-date{font-size:10px;color:var(--dim);font-weight:600}
+.trip-info-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.trip-stat-inline{font-size:10px;color:var(--text)}
+.trip-stat-inline .trip-stat-label{font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:9px}
+.trip-stat-inline .trip-stat-value{font-weight:800;font-size:13px}
+.trip-toggle-indicator{font-size:10px;color:var(--dim);font-weight:700;flex-shrink:0;display:flex;align-items:center;gap:2px}
+.trip-toggle-arrow{font-size:9px}
+.trip-item.expanded .trip-toggle-indicator{color:var(--accent)}
+.trip-expand{margin-top:0;border-top:none;padding-top:0;max-height:0;overflow:hidden;opacity:0;transition:max-height .25s ease,opacity .25s ease,padding-top .25s ease}
+.trip-item.expanded .trip-expand{margin-top:6px;padding-top:0}
+.trip-act-btn{background:none;border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:10px;font-weight:700;cursor:pointer;padding:2px 8px;line-height:1.3}
+.trip-act-btn:active{background:var(--accent-bg)}
+.trip-act-btn.del{color:var(--accent)}
+.new-session-btn{display:block;padding:10px 16px;border:none;border-radius:5px;font-size:11px;font-weight:800;color:var(--bg);cursor:pointer;background:var(--accent);box-shadow:none;letter-spacing:.04em;margin:0;width:fit-content}
+.new-session-btn:active{transform:scale(.97)}
+
+/* Session accordion */
+.trip-expand .te-session{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:6px 8px;margin:4px 0;overflow:hidden}
+.te-session .te-session-header{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.sess-toggle-indicator{font-size:10px;color:var(--dim);font-weight:700;flex-shrink:0;display:flex;align-items:center;gap:2px}
+.sess-toggle-arrow{font-size:9px}
+.te-session.sess-expanded .sess-toggle-indicator{color:var(--accent)}
+.te-session-detail{max-height:0;overflow:hidden;opacity:0;transition:max-height .25s ease,opacity .25s ease}
+.te-session.sess-expanded .te-session-detail{margin-top:6px;border-top:1px solid var(--border);padding-top:6px}
+.te-session.sess-expanded{border-color:var(--accent)}
+.trip-expand .te-session .si-info{flex:1;min-width:0}
+.trip-expand .te-session .si-date{font-size:9px;font-weight:600}
+.trip-expand .te-session .si-loc{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trip-expand .te-session .si-pl{font-size:13px;font-weight:800;text-align:right;min-width:60px}
+
+/* Journey P/L chart */
+.stack-chart-section{margin:8px 0;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.stack-chart-title{font-size:10px;font-weight:700;color:var(--text);letter-spacing:.08em;margin-bottom:6px}
+.stack-chart-canvas{width:100%;height:160px;display:block}
+
+/* Stats grid */
+.ds-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin:4px 0}
+.ds-grid-item{background:var(--std);border:1px solid var(--border);border-radius:5px;padding:4px 6px;text-align:center}
+.ds-grid-item .ds-grid-label{font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--dim)}
+.ds-grid-item .ds-grid-value{font-size:13px;font-weight:800;margin-top:1px;color:var(--text)}
+
+/* Hand accordion */
+.hand-item{background:var(--std);border:1px solid var(--border);border-radius:6px;margin:4px 0;overflow:hidden}
+.hand-item-header{display:flex;align-items:center;padding:6px 8px;cursor:pointer;gap:6px}
+.hand-item-header .hand-title{flex:1;font-size:12px;font-weight:700;color:var(--accent)}
+.hand-item-header .hand-summary{flex:2;font-size:11px;color:var(--dim);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.hand-item-header .hand-toggle{font-size:10px;color:var(--dim);font-weight:700;flex-shrink:0}
+.hand-item.open .hand-item-header .hand-toggle{color:var(--accent)}
+.hand-edit-btn{background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:10px;font-weight:700;cursor:pointer;padding:1px 8px;line-height:1.3;flex-shrink:0}
+.hand-item-body{display:none;padding:4px 8px 8px;border-top:1px solid var(--border)}
+.hand-item-body pre{margin:0;font-size:12px;line-height:1.4;white-space:pre-wrap;word-break:break-all;color:var(--text);background:none;border:none;padding:0}
+.hand-item.open .hand-item-body{display:block}
+
+/* P/L color */
+.positive{color:var(--accent)}
+.negative{color:var(--accent)}
+
+/* Modal input */
+.wiz-modal-input{width:100%;border:1px solid var(--border);border-radius:5px;padding:8px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;box-sizing:border-box;margin:4px 0}
+.wiz-modal-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
+.wiz-modal-label{font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.03em;margin:8px 0 2px}
+.wiz-modal-select{width:100%;border:1px solid var(--border);border-radius:5px;padding:8px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;box-sizing:border-box;margin:4px 0}
+.wiz-modal-row{display:flex;gap:6px}
+.wiz-modal-row>div{flex:1}
 .save-bar{background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:6px;padding:8px 12px;margin:8px 0;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .save-bar .save-label{font-size:11px;font-weight:700;color:var(--accent)}
 .saved-badge{font-size:11px;font-weight:700;color:var(--accent);padding:3px 8px;border-radius:3px;background:var(--accent-bg);border:1px solid var(--accent)}
@@ -260,7 +350,7 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
 /* ===== Custom Numeric Keypad ===== */
 #numpad{
   display:none;position:fixed;
-  bottom:calc(44px + env(safe-area-inset-bottom,0px));
+  bottom:calc(56px + env(safe-area-inset-bottom,0px));
   left:50%;transform:translateX(-50%);
   width:min(430px,100vw);
   background:var(--bg);
@@ -269,7 +359,8 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
   z-index:195;padding:3px 6px;
 }
 #numpad.show{display:flex;flex-direction:column;gap:3px}
-.nk-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin:0}
+.nk-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin:0}
+.nk-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin:0}
 .nk-btn{
   padding:7px 2px;font-size:13px;font-weight:700;
   border:1px solid var(--border);border-radius:4px;
@@ -297,17 +388,12 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
   <div class="hero-banner">
     <svg class="hero-mascot" viewBox="4170 4190 300 255" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" fill-rule="evenodd" d="M4418,4326c-5.5.27-10.01,1.7-14-1-6.36-1.99-7.87-6.96-12-11-.16-8.42,1.4-14,3-20,4.79-2.92,10.38-5.41,16-8,.16-11.94,13.49-26.38,28-19,4.8,2.44,7.38,8.27,11,12l-1,13c7.19,3.63,20.4,16.52,11,29-3.58,11.02-16.77,9.99-28,8-.65,1.87-.95,3.91-1,7,7.67,8.05,9.67,12.36,6,26-8.98,4.61-20.35,8.49-31,2-2.75-1.68-5.85-5.92-9-7l-20-1c-.91,1.08.08.08-1,1,7.01,32.42,5.29,83.07-27,84-4.23-4.07-7.92-7.77-12-12,.2-6.54,2.83-6.64,4-10l-1-10c4.37-2.54,15.13-5.89,17-11,.98-4.08-4.09-14.06-6-19-2.89-7.48-4.03-14.6-8-21-4.89-7.89-13.21-15.15-15-26-.42-2.54,2.44-10.29,3-13,1.91-9.19-2.45-16.83-11-17-8.56,7-23.09,13.9-27,25,7.27,4.64,18.53,15.99,21,25,2.84,10.35-3.78,17.12-6,23-4.66,12.38-7.63,26.63-8,42,6.29,2.71,27.96,10.38,30,16,.96,1.42.98,3.27,1,6-12.57,6.15-24.54,1.01-41,1-6.29,0-17.57,1.67-22-1-1.42-.85-1.92-3.75-3-5,1.67-7.07,6.22-11.5,8-17,2.76-8.55-2.49-21.23-4-28-1.28-5.74,2.39-12.6,1-15-1.33-4.27-4-6.34-9-7-1.81,3.87-3.25,10.62-6,14-4.32,5.31-15.32,7.08-22,10-8.31,3.63-13.91,9.27-20,15,2.61,7.71,3.03,13.93,9,18,4.17,2.85,7.89,1.99,10,7,2.45,3.38,1,4.71,0,9h-2c-8.25,5.84-32.18-4-36-9l-6-17c-3.18-4.67-13.5-6.86-11-17,2-8.12,9.41-6.3,16-10l18-19c6.95-4.68,13.33-1.48,14-13-1.33-4-2.67-8-4-12-23.39-41.09,26.84-74.61,49-91,7.61-5.63,13.78-13.93,22-19l16-7h5c4.14-2.08,5.35-10.16,8-14l12-11c7.79-4.78,24.69-5.28,33,0,2.41,1.53,4.54,5.44,7,7,4.8,3.03,8.8,1.22,11,7,1.58,2.48-.63,7.84,1,11l7,5c2.06,4.56,1.3,23.9,0,29-8.76,5.13-17.82,2.5-30,2-2.05,3.24-2.99,4.03-3,10,5.91,9.66-2.71,29.29,1,41,.8,2.52,3.12,4.7,4,8,8.12,4.19,44.71,24.61,53,9,.8-1.18.77-1.68,1-4Z"/></svg>
     <div class="hero-title">Sapiens Poker Wizard</div>
-    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--bg);letter-spacing:.05em">v0.052</span>
+    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--bg);letter-spacing:.05em">v0.062</span>
   </div>
 
-  <!-- ハンドリスト画面 -->
+  <!-- ジャーニーリスト画面 -->
   <div id="listView">
-    <div class="list-header">
-      <h2>Hand Records</h2>
-      <button class="btn btn-primary btn-sm" onclick="startNewHand()">+ New Hand</button>
-    </div>
-    <div id="exportBar" style="display:none;margin:4px 0"><button class="btn btn-sm" onclick="exportAllHands()" style="width:100%">ハンド記録を書き出し</button></div>
-    <div id="handListContainer"></div>
+    <div id="journeyListContainer"></div>
   </div>
 
   <!-- プレイヤーセット選択画面 -->
@@ -344,7 +430,6 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
     <div class="nk-btn" onclick="nkPress('3')">3</div>
     <div class="nk-btn" onclick="nkPress('4')">4</div>
     <div class="nk-btn" onclick="nkPress('5')">5</div>
-    <div class="nk-btn" onclick="nkPress('00')">00</div>
     <div class="nk-btn nk-del" onclick="nkPress('del')">⌫</div>
   </div>
   <div class="nk-grid">
@@ -353,7 +438,11 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
     <div class="nk-btn" onclick="nkPress('8')">8</div>
     <div class="nk-btn" onclick="nkPress('9')">9</div>
     <div class="nk-btn" onclick="nkPress('0')">0</div>
-    <div class="nk-btn" onclick="nkPress('000')">000</div>
+    <div class="nk-btn" onclick="nkPress('00')">00</div>
+  </div>
+  <div class="nk-grid-3">
+    <div class="nk-btn" onclick="nkCursorMove(-1)">◀</div>
+    <div class="nk-btn" onclick="nkCursorMove(1)">▶</div>
     <div class="nk-btn nk-ok" onclick="hideNumpad()">OK</div>
   </div>
 </div>
@@ -433,6 +522,12 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
     </div>
   </div>
 </div>
+<div id="wizModal" class="modal-overlay" onclick="hideWizModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title" id="wizModalTitle"></div>
+    <div id="wizModalBody"></div>
+  </div>
+</div>
 
 <script>
 /* ========== APP STATE ========== */
@@ -440,6 +535,12 @@ var viewMode = 'list'; // 'list' | 'wizard'
 var handSaved = false; // 保存済みフラグ
 var editingHandId = null; // 編集中のハンドID（新規ならnull）
 var STORAGE_KEY = 'pokerWizardHands_v1';
+var JOURNEY_KEY = 'pokerWizardJourneys_v1';
+var SESSION_KEY = 'pokerWizardSessions_v1';
+var journeys = [];
+var wSessions = [];
+var currentJourneyId = null;
+var currentSessionId = null;
 var autoReplayQueue = null; // アクション編集後の自動再生キュー
 var silentReplay = false;   // trueの間はdoActionが再描画しない
 
@@ -2120,7 +2221,7 @@ function renderStep13_summary() {
   h += '</div>';
 
   h += '<div class="sec-title" style="margin-top:8px">ハンドログ内容確認</div>';
-  h += '<div class="preview-block" style="max-height:150px" id="previewText">' + escapeHtml(memoText) + '</div>';
+  h += '<div class="preview-block" style="max-height:330px;overflow-y:scroll" id="previewText">' + escapeHtml(memoText) + '</div>';
 
 
   h += '</div>';
@@ -2134,12 +2235,15 @@ function escapeHtml(s) {
 
 
 function downloadFile(filename, content) {
-  var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  var blob = new Blob([content], { type: 'application/octet-stream' });
+  var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  a.href = url;
   a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(a.href);
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
   show('Downloaded ' + filename);
 }
 
@@ -2303,6 +2407,7 @@ function generateHandJson() {
   var streetNames = ['preflop','flop','turn','river'];
   var streetData = {};
   var fullBoard = [];
+  var totalUncalled = 0;
 
   streetNames.forEach(function(st){
     var s = W.streets[st];
@@ -2314,11 +2419,34 @@ function generateHandJson() {
         amount: a.amount || 0
       };
     });
+    // 各プレイヤーのストリート内投資額を追跡
+    var streetInv = {};
     actions.forEach(function(a){
       if (a.action !== 'fold' && a.action !== 'check') {
         pot += a.amount;
+        streetInv[a.seat] = (streetInv[a.seat] || 0) + a.amount;
       }
     });
+    // uncalled bet計算: 最大投資額 - 2番目の投資額
+    var invAmounts = [];
+    for (var sk in streetInv) {
+      if (streetInv.hasOwnProperty(sk)) invAmounts.push(streetInv[sk]);
+    }
+    invAmounts.sort(function(a, b) { return b - a; });
+    var streetUncalled = 0;
+    if (invAmounts.length >= 2 && invAmounts[0] > invAmounts[1]) {
+      streetUncalled = invAmounts[0] - invAmounts[1];
+    } else if (invAmounts.length === 1) {
+      // 1人だけベット（他全員fold） → 全額uncalled
+      var hasCaller = false;
+      actions.forEach(function(a){ if (a.action === 'call') hasCaller = true; });
+      if (!hasCaller && invAmounts[0] > 0) {
+        // ただしpreflopのBBへのlimpは除外（callがある場合）
+        streetUncalled = 0; // fold勝ちの場合はresult amountで調整
+      }
+    }
+    pot -= streetUncalled;
+    totalUncalled += streetUncalled;
     var obj = { actions: actions, potAfter: pot };
     if (st !== 'preflop') {
       obj.board = (s.board || []).slice();
@@ -2357,16 +2485,32 @@ function generateHandJson() {
   if (hero) {
     var hr = W.results.find(function(r){ return r.seat === hero.seat; });
     heroResult = hr ? hr.result : 'lose';
+    // heroの実質投資額を計算（uncalled bet返還を考慮）
     var heroInvested = 0;
     var heroPos = posMap[hero.seat];
     if (heroPos === 'SB') heroInvested += W.sb;
     else if (heroPos === 'BB') heroInvested += W.bb + W.ante;
     streetNames.forEach(function(st){
+      var heroStreetInv = 0;
+      var maxInv = 0;
+      var secondMaxInv = 0;
+      var streetInvMap = {};
       W.streets[st].actions.forEach(function(a){
-        if (a.seat === hero.seat && a.action !== 'fold' && a.action !== 'check') {
-          heroInvested += (a.amount || 0);
+        if (a.action !== 'fold' && a.action !== 'check') {
+          streetInvMap[a.seat] = (streetInvMap[a.seat] || 0) + (a.amount || 0);
         }
       });
+      heroStreetInv = streetInvMap[hero.seat] || 0;
+      // uncalled bet: heroが最大投資者の場合、差分が返還される
+      var invArr = [];
+      for (var sik in streetInvMap) {
+        if (streetInvMap.hasOwnProperty(sik)) invArr.push({ seat: parseInt(sik), amt: streetInvMap[sik] });
+      }
+      invArr.sort(function(a, b) { return b.amt - a.amt; });
+      if (invArr.length >= 2 && invArr[0].seat === hero.seat && invArr[0].amt > invArr[1].amt) {
+        heroStreetInv -= (invArr[0].amt - invArr[1].amt); // uncalled分を差し引く
+      }
+      heroInvested += heroStreetInv;
     });
     if (hr && hr.result === 'win') heroProfit = pot - heroInvested;
     else if (hr && hr.result === 'chop') {
@@ -2381,7 +2525,7 @@ function generateHandJson() {
     format: 'poker-hand-history',
     version: '1.0.0',
     exportedAt: new Date().toISOString(),
-    generator: 'Sapiens Poker Hand Wizard v0.052',
+    generator: 'Sapiens Poker Hand Wizard v0.062',
     hand: {
       id: W.handNumber,
       tableSize: W.playerCount,
@@ -2427,6 +2571,876 @@ function saveHandsToStorage(hands) {
   } catch(e) { show('Storage error'); }
 }
 
+/* ========== JOURNEY/SESSION PERSISTENCE ========== */
+function loadJourneys() {
+  try {
+    var data = localStorage.getItem(JOURNEY_KEY);
+    journeys = data ? JSON.parse(data) : [];
+  } catch(e) { journeys = []; }
+}
+function persistJourneys() {
+  try { localStorage.setItem(JOURNEY_KEY, JSON.stringify(journeys)); } catch(e) { show('Storage error'); }
+}
+function getJourney(id) {
+  for (var i = 0; i < journeys.length; i++) { if (journeys[i].id === id) return journeys[i]; }
+  return null;
+}
+function loadWizSessions() {
+  try {
+    var data = localStorage.getItem(SESSION_KEY);
+    wSessions = data ? JSON.parse(data) : [];
+  } catch(e) { wSessions = []; }
+}
+function persistWizSessions() {
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(wSessions)); } catch(e) { show('Storage error'); }
+}
+function getWizSession(id) {
+  for (var i = 0; i < wSessions.length; i++) { if (wSessions[i].id === id) return wSessions[i]; }
+  return null;
+}
+
+/* ========== JOURNEY/SESSION CRUD ========== */
+function createJourney(data) {
+  var j = {
+    id: 'wj_' + Date.now() + '_' + Math.floor(Math.random()*10000),
+    title: data.title || '',
+    createdAt: new Date().toISOString(),
+    status: 'active'
+  };
+  journeys.unshift(j);
+  persistJourneys();
+  return j;
+}
+function editJourney(id, data) {
+  var j = getJourney(id);
+  if (!j) return;
+  if (data.title !== undefined) j.title = data.title;
+  persistJourneys();
+}
+function deleteJourney(id) {
+  // セッション＋ハンドも削除
+  var sessIds = wSessions.filter(function(s){ return s.journeyId === id; }).map(function(s){ return s.id; });
+  if (sessIds.length > 0) {
+    var hands = loadHandsFromStorage();
+    hands = hands.filter(function(h){ return sessIds.indexOf(h.sessionId) < 0; });
+    saveHandsToStorage(hands);
+  }
+  wSessions = wSessions.filter(function(s){ return s.journeyId !== id; });
+  persistWizSessions();
+  journeys = journeys.filter(function(j){ return j.id !== id; });
+  persistJourneys();
+}
+
+function createWizSession(data) {
+  var now = new Date().toISOString();
+  var s = {
+    id: 'ws_' + Date.now() + '_' + Math.floor(Math.random()*10000),
+    journeyId: data.journeyId || currentJourneyId || '',
+    location: data.location || '',
+    gameType: data.gameType || 'NLH',
+    sb: parseInt(data.sb) || 0,
+    bb: parseInt(data.bb) || 0,
+    buyIns: [parseInt(data.buyIn) || 0],
+    cashOut: 0,
+    startTime: now,
+    endTime: null,
+    status: 'active'
+  };
+  wSessions.unshift(s);
+  persistWizSessions();
+  return s;
+}
+function editWizSession(id, data) {
+  var s = getWizSession(id);
+  if (!s) return;
+  if (data.location !== undefined) s.location = data.location;
+  if (data.gameType !== undefined) s.gameType = data.gameType;
+  if (data.sb !== undefined) s.sb = parseInt(data.sb) || 0;
+  if (data.bb !== undefined) s.bb = parseInt(data.bb) || 0;
+  persistWizSessions();
+}
+function deleteWizSession(id) {
+  var hands = loadHandsFromStorage();
+  hands = hands.filter(function(h){ return h.sessionId !== id; });
+  saveHandsToStorage(hands);
+  wSessions = wSessions.filter(function(s){ return s.id !== id; });
+  persistWizSessions();
+}
+function endWizSession(id, cashOut) {
+  var s = getWizSession(id);
+  if (!s) return;
+  s.cashOut = parseInt(cashOut) || 0;
+  s.endTime = new Date().toISOString();
+  s.status = 'completed';
+  persistWizSessions();
+}
+function addBuyIn(id, amount) {
+  var s = getWizSession(id);
+  if (!s) return;
+  s.buyIns.push(parseInt(amount) || 0);
+  persistWizSessions();
+}
+
+/* ========== STATS ========== */
+function calcWizSessionStats(session) {
+  var totalBuyIn = 0;
+  for (var i = 0; i < session.buyIns.length; i++) totalBuyIn += session.buyIns[i];
+  var cashOut = session.cashOut || 0;
+  var profit = cashOut - totalBuyIn;
+  var durationMin = 0;
+  if (session.startTime) {
+    var end = session.endTime ? new Date(session.endTime).getTime() : Date.now();
+    durationMin = Math.max(0, Math.floor((end - new Date(session.startTime).getTime()) / 60000));
+  }
+  var bb = session.bb || 1;
+  var hours = durationMin / 60;
+  var bbPerHour = (hours > 0 && bb > 0) ? ((profit / bb) / hours) : 0;
+  var hands = loadHandsFromStorage();
+  var handCount = hands.filter(function(h){ return h.sessionId === session.id; }).length;
+  return {
+    totalBuyIn: totalBuyIn,
+    cashOut: cashOut,
+    profit: profit,
+    durationMin: durationMin,
+    bbPerHour: Math.round(bbPerHour * 10) / 10,
+    handCount: handCount
+  };
+}
+function calcWizJourneyStats(journeyId) {
+  var tripSess = wSessions.filter(function(s){ return s.journeyId === journeyId; });
+  var completed = tripSess.filter(function(s){ return s.status === 'completed'; });
+  var totalProfit = 0, totalMin = 0;
+  for (var i = 0; i < completed.length; i++) {
+    var st = calcWizSessionStats(completed[i]);
+    totalProfit += st.profit;
+    totalMin += st.durationMin;
+  }
+  var hands = loadHandsFromStorage();
+  var sessIds = tripSess.map(function(s){ return s.id; });
+  var handCount = hands.filter(function(h){ return sessIds.indexOf(h.sessionId) >= 0; }).length;
+  return {
+    sessionCount: tripSess.length,
+    totalProfit: totalProfit,
+    totalHours: Math.round(totalMin / 60 * 10) / 10,
+    handCount: handCount
+  };
+}
+
+/* ========== JOURNEY P/L CHART ========== */
+function renderJourneyChart(completedSessions, canvas) {
+  if (!canvas) return;
+  var parentEl = canvas.parentElement;
+  var parentCS = getComputedStyle(parentEl);
+  var contentW = parentEl.clientWidth - parseFloat(parentCS.paddingLeft) - parseFloat(parentCS.paddingRight);
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = contentW * dpr;
+  canvas.height = 160 * dpr;
+  canvas.style.width = contentW + 'px';
+  canvas.style.height = '160px';
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  var CW = contentW, CH = 160;
+
+  // 累積P/Lデータ
+  var points = [{x: 0, y: 0, label: 'Start'}];
+  var cumPL = 0;
+  for (var i = 0; i < completedSessions.length; i++) {
+    var s = completedSessions[i];
+    var st = calcWizSessionStats(s);
+    cumPL += st.profit;
+    points.push({x: i + 1, y: cumPL, label: 'S' + (i + 1), name: s.location || ''});
+  }
+
+  // 座標範囲
+  var xMin = 0, xMax = points.length - 1;
+  if (xMax <= 0) xMax = 1;
+  var yMin = Infinity, yMax = -Infinity;
+  for (var i = 0; i < points.length; i++) {
+    if (points[i].y < yMin) yMin = points[i].y;
+    if (points[i].y > yMax) yMax = points[i].y;
+  }
+  if (0 < yMin) yMin = 0;
+  if (0 > yMax) yMax = 0;
+  var yPad = (yMax - yMin) * 0.15 || 1000;
+  yMin -= yPad; yMax += yPad;
+
+  var ml = 52, mr = 12, mt = 12, mb = 24;
+  var cw = CW - ml - mr, ch = CH - mt - mb;
+  function toX(v) { return ml + (v - xMin) / (xMax - xMin) * cw; }
+  function toY(v) { return mt + ch - (v - yMin) / (yMax - yMin) * ch; }
+
+  var style = getComputedStyle(document.documentElement);
+  var accentColor = style.getPropertyValue('--accent').trim() || '#144d75';
+  var dimColor    = style.getPropertyValue('--dim').trim()    || '#888';
+  var borderColor = style.getPropertyValue('--border').trim() || '#333';
+  var textColor   = style.getPropertyValue('--text').trim()   || '#eee';
+  var bgColor     = style.getPropertyValue('--bg').trim()     || '#eff6f8';
+
+  ctx.clearRect(0, 0, CW, CH);
+
+  // Grid Y
+  var ySteps = 4, yRange = yMax - yMin;
+  ctx.strokeStyle = borderColor; ctx.lineWidth = 0.5;
+  ctx.font = '9px sans-serif'; ctx.fillStyle = dimColor; ctx.textAlign = 'right';
+  for (var i = 0; i <= ySteps; i++) {
+    var yVal = yMin + (yRange / ySteps) * i;
+    var py = toY(yVal);
+    ctx.beginPath(); ctx.moveTo(ml, py); ctx.lineTo(CW - mr, py); ctx.stroke();
+    ctx.fillText(formatNum(Math.round(yVal)), ml - 4, py + 3);
+  }
+
+  // X軸ラベル
+  ctx.textAlign = 'center'; ctx.fillStyle = dimColor;
+  for (var i = 0; i < points.length; i++) {
+    ctx.fillText(points[i].label, toX(points[i].x), CH - 4);
+  }
+
+  // ゼロライン（ブレイクイーブン）
+  ctx.save();
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = dimColor; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(ml, toY(0)); ctx.lineTo(CW - mr, toY(0)); ctx.stroke();
+  ctx.restore();
+
+  // 折れ線
+  ctx.strokeStyle = accentColor; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  for (var i = 0; i < points.length; i++) {
+    var px = toX(points[i].x), py = toY(points[i].y);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // グラデーション塗り
+  ctx.save();
+  ctx.beginPath();
+  for (var i = 0; i < points.length; i++) {
+    var px = toX(points[i].x), py = toY(points[i].y);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.lineTo(toX(points[points.length - 1].x), toY(0));
+  ctx.lineTo(toX(points[0].x), toY(0));
+  ctx.closePath();
+  function hexToRgba(c, a) {
+    if (c.charAt(0) === '#') {
+      var hex = c.slice(1);
+      if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+      var r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+      return 'rgba('+r+','+g+','+b+','+a+')';
+    }
+    if (c.indexOf('rgb(') === 0) return c.replace('rgb(', 'rgba(').replace(')', ','+a+')');
+    return c;
+  }
+  var grad = ctx.createLinearGradient(0, mt, 0, mt + ch);
+  grad.addColorStop(0, hexToRgba(accentColor, 0.25));
+  grad.addColorStop(1, hexToRgba(accentColor, 0.02));
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.restore();
+
+  // データポイント
+  for (var i = 0; i < points.length; i++) {
+    var px = toX(points[i].x), py = toY(points[i].y);
+    ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2);
+    ctx.fillStyle = accentColor; ctx.fill();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  // 数値ラベル（クランプ付き）
+  ctx.font = 'bold 9px sans-serif';
+  for (var i = 1; i < points.length; i++) {
+    var px = toX(points[i].x), py = toY(points[i].y);
+    var valText = formatNum(points[i].y);
+    var vw = ctx.measureText(valText).width;
+    var lx = px, ly = py - 6;
+    if (lx - vw / 2 - 3 < ml) lx = ml + vw / 2 + 3;
+    if (lx + vw / 2 + 3 > CW - mr) lx = CW - mr - vw / 2 - 3;
+    if (ly - 9 < mt) ly = py + 14;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(lx - vw / 2 - 3, ly - 9, vw + 6, 12);
+    ctx.fillStyle = textColor;
+    ctx.fillText(valText, lx, ly);
+  }
+
+  // セッション名（線分中央、クランプ付き）
+  ctx.font = 'bold 10px sans-serif';
+  for (var i = 1; i < points.length; i++) {
+    if (!points[i].name) continue;
+    var x1 = toX(points[i-1].x), y1 = toY(points[i-1].y);
+    var x2 = toX(points[i].x),   y2 = toY(points[i].y);
+    var mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 14;
+    var tw = ctx.measureText(points[i].name).width;
+    if (mx - tw / 2 - 3 < ml) mx = ml + tw / 2 + 3;
+    if (mx + tw / 2 + 3 > CW - mr) mx = CW - mr - tw / 2 - 3;
+    if (my - 9 < mt) my = mt + 9;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(mx - tw / 2 - 3, my - 9, tw + 6, 13);
+    ctx.fillStyle = dimColor;
+    ctx.fillText(points[i].name, mx, my);
+  }
+}
+
+/* ========== FORMAT HELPERS ========== */
+function formatCurrency(n) {
+  if (n === 0) return '0';
+  var sign = n >= 0 ? '+' : '';
+  return sign + formatNum(n);
+}
+function formatNum(n) {
+  if (n == null) return '0';
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function formatDateShort(iso) {
+  try {
+    var d = new Date(iso);
+    return d.getFullYear() + '/' + pad2(d.getMonth()+1) + '/' + pad2(d.getDate());
+  } catch(e) { return ''; }
+}
+function formatDateTime(iso) {
+  try {
+    var d = new Date(iso);
+    return pad2(d.getMonth()+1) + '/' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  } catch(e) { return ''; }
+}
+function durationStr(min) {
+  return Math.floor(min / 60) + 'h ' + (min % 60) + 'm';
+}
+
+/* ========== MODAL ========== */
+function showWizModal(title, bodyHtml) {
+  $('wizModalTitle').textContent = title;
+  $('wizModalBody').innerHTML = bodyHtml;
+  $('wizModal').classList.add('active');
+}
+function hideWizModal() {
+  $('wizModal').classList.remove('active');
+}
+
+/* ========== JOURNEY MODALS ========== */
+function showNewJourneyModal() {
+  var html = '<div class="wiz-modal-label">Journey Title</div>';
+  html += '<input class="wiz-modal-input" id="mjTitle" placeholder="例: Manila 2026.03">';
+  html += '<div class="modal-btns" style="margin-top:12px">';
+  html += '<button class="btn btn-primary" onclick="doCreateJourney()">作成</button>';
+  html += '<button class="btn" onclick="hideWizModal()">キャンセル</button>';
+  html += '</div>';
+  showWizModal('New Journey', html);
+  setTimeout(function(){ var el = $('mjTitle'); if(el) el.focus(); }, 100);
+}
+function doCreateJourney() {
+  var title = ($('mjTitle') || {}).value || '';
+  if (!title.trim()) { show('タイトルを入力してください'); return; }
+  var j = createJourney({ title: title.trim() });
+  hideWizModal();
+  renderJourneyList();
+  // 自動展開
+  setTimeout(function(){ toggleJourney(j.id); }, 100);
+}
+function showEditJourneyModal(id) {
+  var j = getJourney(id);
+  if (!j) return;
+  var html = '<div class="wiz-modal-label">Journey Title</div>';
+  html += '<input class="wiz-modal-input" id="mjTitle" value="' + escapeHtml(j.title) + '">';
+  html += '<div class="modal-btns" style="margin-top:12px">';
+  html += '<button class="btn btn-primary" onclick="doEditJourney(\'' + id + '\')">保存</button>';
+  html += '<button class="btn" style="color:#c0392b;border-color:#c0392b" onclick="doDeleteJourney(\'' + id + '\')">削除</button>';
+  html += '<button class="btn" onclick="hideWizModal()">キャンセル</button>';
+  html += '</div>';
+  showWizModal('Edit Journey', html);
+}
+function doEditJourney(id) {
+  var title = ($('mjTitle') || {}).value || '';
+  if (!title.trim()) { show('タイトルを入力してください'); return; }
+  editJourney(id, { title: title.trim() });
+  hideWizModal();
+  renderJourneyList();
+  setTimeout(function(){ toggleJourney(id); }, 100);
+}
+function doDeleteJourney(id) {
+  deleteJourney(id);
+  hideWizModal();
+  renderJourneyList();
+  show('Journey deleted');
+}
+
+/* ========== SESSION MODALS ========== */
+function showNewWizSessionModal() {
+  var html = '<div class="wiz-modal-label">Location</div>';
+  html += '<input class="wiz-modal-input" id="msLoc" placeholder="例: Casino Grand">';
+  html += '<div class="wiz-modal-label">Game Type</div>';
+  html += '<select class="wiz-modal-select" id="msGame">';
+  html += '<option value="NLH">NLH</option><option value="PLO">PLO</option><option value="PLO5">PLO5</option><option value="Limit">Limit</option><option value="Mixed">Mixed</option>';
+  html += '</select>';
+  html += '<div class="wiz-modal-row">';
+  html += '<div><div class="wiz-modal-label">SB</div><input class="wiz-modal-input" id="msSB" type="number" placeholder="50"></div>';
+  html += '<div><div class="wiz-modal-label">BB</div><input class="wiz-modal-input" id="msBB" type="number" placeholder="100"></div>';
+  html += '</div>';
+  html += '<div class="wiz-modal-label">Buy-in</div>';
+  html += '<input class="wiz-modal-input" id="msBuyIn" type="number" placeholder="50000">';
+  html += '<div class="modal-btns" style="margin-top:12px">';
+  html += '<button class="btn btn-primary" onclick="doCreateWizSession()">作成</button>';
+  html += '<button class="btn" onclick="hideWizModal()">キャンセル</button>';
+  html += '</div>';
+  showWizModal('New Session', html);
+  setTimeout(function(){ var el = $('msLoc'); if(el) el.focus(); }, 100);
+}
+function doCreateWizSession() {
+  var loc = ($('msLoc') || {}).value || '';
+  var game = ($('msGame') || {}).value || 'NLH';
+  var sb = ($('msSB') || {}).value || '0';
+  var bb = ($('msBB') || {}).value || '0';
+  var buyIn = ($('msBuyIn') || {}).value || '0';
+  var s = createWizSession({ journeyId: currentJourneyId, location: loc.trim(), gameType: game, sb: sb, bb: bb, buyIn: buyIn });
+  hideWizModal();
+  renderJourneyList();
+  setTimeout(function(){
+    toggleJourney(currentJourneyId);
+    setTimeout(function(){ toggleWizSession(s.id); }, 200);
+  }, 100);
+}
+function showEditWizSessionModal(id) {
+  var s = getWizSession(id);
+  if (!s) return;
+  var html = '<div class="wiz-modal-label">Location</div>';
+  html += '<input class="wiz-modal-input" id="msLoc" value="' + escapeHtml(s.location) + '">';
+  html += '<div class="wiz-modal-label">Game Type</div>';
+  html += '<select class="wiz-modal-select" id="msGame">';
+  ['NLH','PLO','PLO5','Limit','Mixed'].forEach(function(g){
+    html += '<option value="' + g + '"' + (s.gameType === g ? ' selected' : '') + '>' + g + '</option>';
+  });
+  html += '</select>';
+  html += '<div class="wiz-modal-row">';
+  html += '<div><div class="wiz-modal-label">SB</div><input class="wiz-modal-input" id="msSB" type="number" value="' + s.sb + '"></div>';
+  html += '<div><div class="wiz-modal-label">BB</div><input class="wiz-modal-input" id="msBB" type="number" value="' + s.bb + '"></div>';
+  html += '</div>';
+  html += '<div class="modal-btns" style="margin-top:12px">';
+  html += '<button class="btn btn-primary" onclick="doEditWizSession(\'' + id + '\')">保存</button>';
+  html += '<button class="btn" style="color:#c0392b;border-color:#c0392b" onclick="doDeleteWizSession(\'' + id + '\')">削除</button>';
+  html += '<button class="btn" onclick="hideWizModal()">キャンセル</button>';
+  html += '</div>';
+  showWizModal('Edit Session', html);
+}
+function doEditWizSession(id) {
+  editWizSession(id, {
+    location: ($('msLoc') || {}).value || '',
+    gameType: ($('msGame') || {}).value || 'NLH',
+    sb: ($('msSB') || {}).value,
+    bb: ($('msBB') || {}).value
+  });
+  hideWizModal();
+  var s = getWizSession(id);
+  renderJourneyList();
+  setTimeout(function(){
+    if (s) toggleJourney(s.journeyId);
+    setTimeout(function(){ toggleWizSession(id); }, 200);
+  }, 100);
+}
+function doDeleteWizSession(id) {
+  var s = getWizSession(id);
+  var jid = s ? s.journeyId : null;
+  deleteWizSession(id);
+  hideWizModal();
+  renderJourneyList();
+  if (jid) setTimeout(function(){ toggleJourney(jid); }, 100);
+  show('Session deleted');
+}
+function showEndWizSessionModal(id) {
+  var html = '<div class="wiz-modal-label">Cash-out</div>';
+  html += '<input class="wiz-modal-input" id="msCashOut" type="number" placeholder="100000">';
+  html += '<div class="modal-btns" style="margin-top:12px">';
+  html += '<button class="btn btn-primary" onclick="doEndWizSession(\'' + id + '\')">セッション終了</button>';
+  html += '<button class="btn" onclick="hideWizModal()">キャンセル</button>';
+  html += '</div>';
+  showWizModal('End Session', html);
+  setTimeout(function(){ var el = $('msCashOut'); if(el) el.focus(); }, 100);
+}
+function doEndWizSession(id) {
+  var co = ($('msCashOut') || {}).value || '0';
+  endWizSession(id, co);
+  hideWizModal();
+  var s = getWizSession(id);
+  renderJourneyList();
+  setTimeout(function(){
+    if (s) toggleJourney(s.journeyId);
+    setTimeout(function(){ toggleWizSession(id); }, 200);
+  }, 100);
+  show('Session ended');
+}
+function showAddBuyInModal(id) {
+  var html = '<div class="wiz-modal-label">追加Buy-in額</div>';
+  html += '<input class="wiz-modal-input" id="msAddBuyIn" type="number" placeholder="25000">';
+  html += '<div class="modal-btns" style="margin-top:12px">';
+  html += '<button class="btn btn-primary" onclick="doAddBuyIn(\'' + id + '\')">追加</button>';
+  html += '<button class="btn" onclick="hideWizModal()">キャンセル</button>';
+  html += '</div>';
+  showWizModal('Add Buy-in', html);
+}
+function doAddBuyIn(id) {
+  var amount = ($('msAddBuyIn') || {}).value || '0';
+  addBuyIn(id, amount);
+  hideWizModal();
+  var s = getWizSession(id);
+  renderJourneyList();
+  setTimeout(function(){
+    if (s) toggleJourney(s.journeyId);
+    setTimeout(function(){ toggleWizSession(id); }, 200);
+  }, 100);
+  show('Buy-in added');
+}
+
+/* ========== TOGGLE / EXPAND / COLLAPSE ========== */
+function toggleJourney(id) {
+  var el = document.getElementById('trip-' + id);
+  if (!el) return;
+  var wasExpanded = el.classList.contains('expanded');
+  document.querySelectorAll('.trip-item.expanded').forEach(function(item){ collapseJourney(item); });
+  if (!wasExpanded) expandJourney(el, id);
+}
+function expandJourney(el, id) {
+  el.classList.add('expanded');
+  var ind = el.querySelector('.trip-toggle-indicator');
+  if (ind) ind.innerHTML = '<span class="trip-toggle-arrow">▼</span> Close';
+  currentJourneyId = id;
+  renderJourneyExpand(id);
+  var expand = document.getElementById('tripExpand-' + id);
+  if (!expand) return;
+  expand.style.transition = 'none';
+  expand.style.maxHeight = '0px';
+  expand.style.opacity = '0';
+  void expand.offsetHeight;
+  expand.style.transition = '';
+  expand.style.maxHeight = expand.scrollHeight + 'px';
+  expand.style.opacity = '1';
+  expand.addEventListener('transitionend', function handler(e) {
+    if (e.propertyName !== 'max-height') return;
+    if (el.classList.contains('expanded')) expand.style.maxHeight = 'none';
+    expand.removeEventListener('transitionend', handler);
+  });
+}
+function collapseJourney(item) {
+  var expand = item.querySelector('.trip-expand');
+  if (expand) {
+    expand.style.transition = 'none';
+    expand.style.maxHeight = expand.scrollHeight + 'px';
+    void expand.offsetHeight;
+    expand.style.transition = '';
+    expand.style.maxHeight = '0px';
+    expand.style.opacity = '0';
+  }
+  item.classList.remove('expanded');
+  var ind = item.querySelector('.trip-toggle-indicator');
+  if (ind) ind.innerHTML = '<span class="trip-toggle-arrow">▶</span> Open';
+}
+function toggleWizSession(sessionId) {
+  var el = document.getElementById('sess-' + sessionId);
+  if (!el) return;
+  var wasExpanded = el.classList.contains('sess-expanded');
+  document.querySelectorAll('.te-session.sess-expanded').forEach(function(item){ collapseWizSession(item); });
+  if (!wasExpanded) expandWizSession(el, sessionId);
+}
+function expandWizSession(el, sessionId) {
+  el.classList.add('sess-expanded');
+  var ind = el.querySelector('.sess-toggle-indicator');
+  if (ind) ind.innerHTML = '<span class="sess-toggle-arrow">▼</span> Close';
+  renderSessionExpand(sessionId);
+  var det = document.getElementById('sessDetail-' + sessionId);
+  if (!det) return;
+  det.style.transition = 'none';
+  det.style.maxHeight = '0px';
+  det.style.opacity = '0';
+  void det.offsetHeight;
+  det.style.transition = '';
+  det.style.maxHeight = det.scrollHeight + 'px';
+  det.style.opacity = '1';
+  det.addEventListener('transitionend', function handler(e) {
+    if (e.propertyName !== 'max-height') return;
+    if (el.classList.contains('sess-expanded')) det.style.maxHeight = 'none';
+    det.removeEventListener('transitionend', handler);
+  });
+}
+function collapseWizSession(item) {
+  var det = item.querySelector('.te-session-detail');
+  if (det) {
+    det.style.transition = 'none';
+    det.style.maxHeight = det.scrollHeight + 'px';
+    void det.offsetHeight;
+    det.style.transition = '';
+    det.style.maxHeight = '0px';
+    det.style.opacity = '0';
+  }
+  item.classList.remove('sess-expanded');
+  var ind = item.querySelector('.sess-toggle-indicator');
+  if (ind) ind.innerHTML = '<span class="sess-toggle-arrow">▶</span> Open';
+}
+function toggleSessionHandItem(sessionId, idx) {
+  var el = document.getElementById('shi-' + sessionId + '-' + idx);
+  if (!el) return;
+  var wasOpen = el.classList.contains('open');
+  el.classList.toggle('open');
+  var tog = el.querySelector('.hand-toggle');
+  if (tog) tog.textContent = wasOpen ? '▶ Open' : '▼ Close';
+}
+
+/* ========== FIRST GUIDE ========== */
+function buildWizGuideHtml(collapsed) {
+  var h = '<div class="guide-box" onclick="toggleGuide(this)" style="cursor:pointer">';
+  h += '<div class="guide-title" style="display:flex;justify-content:space-between;align-items:center"><span>First Guide</span><span class="guide-toggle" style="font-size:10px;color:var(--dim);font-weight:700">' + (collapsed ? '<span style="font-size:9px">&#9654;</span> Open' : '<span style="font-size:9px">&#9660;</span> Close') + '</span></div>';
+  h += '<div class="guide-body' + (collapsed ? ' collapsed' : '') + '" style="' + (collapsed ? 'max-height:0' : '') + '">';
+  h += '<p style="font-size:11px;color:var(--dim);line-height:1.5;margin:0 0 6px">ポーカーハンドをステップ形式で詳細に記録するツールです。プリフロップ〜リバーのアクション・カード・結果を13ステップで入力し、メモテキストとJSONの2形式で書き出せます。</p>';
+  h += '<ol class="guide-steps">';
+  h += '<li><span class="step-num">1</span><span class="step-text"><strong>Journey作成</strong><span class="step-sub">「Start New Journey」→ 旅行先・期間などのタイトルを入力</span></span></li>';
+  h += '<li><span class="step-num">2</span><span class="step-text"><strong>Session開始</strong><span class="step-sub">「New Session」→ 場所・ゲーム種別・SB/BB・Buy-in額を入力</span></span></li>';
+  h += '<li><span class="step-num">3</span><span class="step-text"><strong>ハンド記録</strong><span class="step-sub">「+ New Hand」→ 13ステップウィザードで詳細を入力しSave</span></span></li>';
+  h += '<li><span class="step-num">4</span><span class="step-text"><strong>Session終了</strong><span class="step-sub">「End Session」→ Cash-out額を入力 → 収支を自動計算</span></span></li>';
+  h += '<li><span class="step-num">5</span><span class="step-text"><strong>書き出し</strong><span class="step-sub">「Export」→ .txt（メモ形式）と .json（構造化データ）を同時出力</span></span></li>';
+  h += '</ol>';
+  h += '<div style="font-size:11px;font-weight:800;color:var(--accent);margin:10px 0 4px">13ステップの内容</div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:11px;color:var(--dim);margin-bottom:6px">';
+  h += '<div>Step 1: Basic Info (SB/BB/Ante)</div>';
+  h += '<div>Step 2: プレイヤー設定</div>';
+  h += '<div>Step 3: Hero Cards &amp; Stack</div>';
+  h += '<div>Step 4: Preflop Actions</div>';
+  h += '<div>Step 5: Flop Board</div>';
+  h += '<div>Step 6: Flop Actions</div>';
+  h += '<div>Step 7: Turn Board</div>';
+  h += '<div>Step 8: Turn Actions</div>';
+  h += '<div>Step 9: River Board</div>';
+  h += '<div>Step 10: River Actions</div>';
+  h += '<div>Step 11: Showdown</div>';
+  h += '<div>Step 12: Result</div>';
+  h += '<div style="grid-column:1/-1">Step 13: Summary &amp; Save</div>';
+  h += '</div>';
+  h += '<p style="font-size:10px;color:var(--dim);margin:4px 0 0">Step 13のSaveボタンで記録完了。Editボタンで過去ハンドの修正も可能です。</p>';
+  h += '</div></div>';
+  return h;
+}
+
+function toggleGuide(el) {
+  var body = el.querySelector('.guide-body');
+  if (body.classList.contains('collapsed')) {
+    body.style.display = 'block';
+    body.style.maxHeight = body.scrollHeight + 'px';
+    body.classList.remove('collapsed');
+    el.querySelector('.guide-toggle').innerHTML = '<span style="font-size:9px">&#9660;</span> Close';
+  } else {
+    body.style.maxHeight = body.scrollHeight + 'px';
+    requestAnimationFrame(function(){
+      body.classList.add('collapsed');
+    });
+    el.querySelector('.guide-toggle').innerHTML = '<span style="font-size:9px">&#9654;</span> Open';
+  }
+}
+
+/* ========== RENDER: JOURNEY LIST ========== */
+function renderJourneyList() {
+  var el = $('journeyListContainer');
+  if (!el) return;
+  var html = '';
+  if (journeys.length === 0) {
+    // Journey未作成: Start New Journeyボタン（点滅ガイド付き）+ ガイド展開状態
+    html += '<div style="display:flex;flex-direction:column;align-items:center;margin:12px 0">';
+    html += '<div class="session-guide">↓まずはここからスタート↓</div>';
+    html += '<button class="new-session-btn" onclick="showNewJourneyModal()">Start New Journey</button>';
+    html += '</div>';
+    html += buildWizGuideHtml(false); // 展開状態
+    el.innerHTML = html;
+    return;
+  }
+  for (var i = 0; i < journeys.length; i++) {
+    var j = journeys[i];
+    var ts = calcWizJourneyStats(j.id);
+    var plClass = ts.totalProfit >= 0 ? 'positive' : 'negative';
+    html += '<div class="trip-item" id="trip-' + j.id + '" onclick="toggleJourney(\'' + j.id + '\')" style="cursor:pointer">';
+    html += '<div class="trip-header-row">';
+    html += '<div class="trip-title"><span class="trip-date">' + formatDateShort(j.createdAt) + '</span> ' + escapeHtml(j.title) + '</div>';
+    html += '<div class="trip-toggle-indicator"><span class="trip-toggle-arrow">▶</span> Open</div>';
+    html += '</div>';
+    html += '<div class="trip-info-row">';
+    html += '<div class="trip-stat-inline"><span class="trip-stat-label">Sessions</span> <span class="trip-stat-value">' + ts.sessionCount + '</span></div>';
+    html += '<div class="trip-stat-inline"><span class="trip-stat-label">Hands</span> <span class="trip-stat-value">' + ts.handCount + '</span></div>';
+    if (ts.sessionCount > 0) {
+      html += '<div class="trip-stat-inline"><span class="trip-stat-label">P/L</span> <span class="trip-stat-value ' + plClass + '">' + formatCurrency(ts.totalProfit) + '</span></div>';
+      html += '<div class="trip-stat-inline"><span class="trip-stat-label">Hours</span> <span class="trip-stat-value">' + ts.totalHours + '</span></div>';
+    }
+    html += '</div>';
+    html += '<div class="trip-expand" id="tripExpand-' + j.id + '" onclick="event.stopPropagation()"></div>';
+    html += '</div>';
+  }
+  html += '<div style="display:flex;justify-content:center;margin:12px 0"><button class="new-session-btn" onclick="showNewJourneyModal()">Start New Journey</button></div>';
+  html += buildWizGuideHtml(true); // 折りたたみ状態
+  el.innerHTML = html;
+}
+
+/* ========== RENDER: JOURNEY EXPAND ========== */
+function renderJourneyExpand(journeyId) {
+  var container = document.getElementById('tripExpand-' + journeyId);
+  if (!container) return;
+  var tripSess = wSessions.filter(function(s){ return s.journeyId === journeyId; });
+  tripSess.sort(function(a, b){ return new Date(b.startTime) - new Date(a.startTime); });
+  var html = '';
+
+  // Journey P/L chart
+  var completed = tripSess.filter(function(s){ return s.status === 'completed'; });
+  completed.sort(function(a, b){ return new Date(a.startTime) - new Date(b.startTime); });
+  if (completed.length >= 2) {
+    html += '<div class="stack-chart-section">';
+    html += '<div class="stack-chart-title">JOURNEY P/L</div>';
+    html += '<canvas id="journeyChart-' + journeyId + '" class="stack-chart-canvas"></canvas>';
+    html += '</div>';
+  }
+
+  html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:4px 0">Sessions</div>';
+  if (tripSess.length === 0) {
+    html += '<div style="text-align:center;color:var(--dim);font-size:12px;padding:12px 0">No sessions yet</div>';
+  } else {
+    for (var j = 0; j < tripSess.length; j++) {
+      var s = tripSess[j];
+      var sst = calcWizSessionStats(s);
+      var splClass = sst.profit >= 0 ? 'positive' : 'negative';
+      html += '<div class="te-session" id="sess-' + s.id + '" onclick="toggleWizSession(\'' + s.id + '\')" style="cursor:pointer">';
+      html += '<div class="te-session-header">';
+      html += '<div class="si-info"><div class="si-loc"><span class="si-date">' + formatDateTime(s.startTime) + '</span> ' + escapeHtml(s.location || 'No Location') + '</div></div>';
+      html += '<div class="si-pl ' + splClass + '">' + (s.status === 'completed' ? formatCurrency(sst.profit) : '<span style="font-size:9px;color:var(--accent)">LIVE</span>') + '</div>';
+      html += '<div class="sess-toggle-indicator"><span class="sess-toggle-arrow">▶</span> Open</div>';
+      html += '</div>';
+      html += '<div class="te-session-detail" id="sessDetail-' + s.id + '" onclick="event.stopPropagation()"></div>';
+      html += '</div>';
+    }
+  }
+  if (tripSess.length === 0) { html += '<div class="session-guide">↓次はここ↓</div>'; }
+  html += '<div style="position:relative;margin-top:6px;display:flex;justify-content:center">';
+  html += '<button class="new-session-btn" onclick="event.stopPropagation();currentJourneyId=\'' + journeyId + '\';showNewWizSessionModal()">New Session</button>';
+  html += '<button class="trip-act-btn" style="position:absolute;right:0;top:50%;transform:translateY(-50%)" onclick="event.stopPropagation();showEditJourneyModal(\'' + journeyId + '\')">Edit</button>';
+  html += '</div>';
+  container.innerHTML = html;
+
+  // Draw journey chart
+  if (completed.length >= 2) {
+    setTimeout(function(){
+      var canvas = document.getElementById('journeyChart-' + journeyId);
+      if (canvas) renderJourneyChart(completed, canvas);
+    }, 0);
+  }
+}
+
+/* ========== RENDER: SESSION EXPAND ========== */
+function renderSessionExpand(sessionId) {
+  var det = document.getElementById('sessDetail-' + sessionId);
+  if (!det) return;
+  var s = getWizSession(sessionId);
+  if (!s) return;
+  var st = calcWizSessionStats(s);
+  var plClass = st.profit >= 0 ? 'positive' : 'negative';
+  var durStr = durationStr(st.durationMin);
+  var html = '';
+  // ゲーム情報ヘッダー
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
+  html += '<span style="font-size:12px;font-weight:700;color:var(--text)">' + escapeHtml(s.gameType) + ' ' + formatNum(s.sb) + '/' + formatNum(s.bb) + ' | ' + durStr + ' | ' + st.handCount + ' hands</span>';
+  html += '<button class="trip-act-btn" onclick="showEditWizSessionModal(\'' + sessionId + '\')">Edit</button>';
+  html += '</div>';
+  // 統計グリッド
+  html += '<div class="ds-grid">';
+  html += '<div class="ds-grid-item"><div class="ds-grid-label">Buy-in</div><div class="ds-grid-value">' + formatNum(st.totalBuyIn) + '</div></div>';
+  html += '<div class="ds-grid-item"><div class="ds-grid-label">Cash-out</div><div class="ds-grid-value">' + (s.status === 'completed' ? formatNum(st.cashOut) : '--') + '</div></div>';
+  html += '<div class="ds-grid-item"><div class="ds-grid-label">Profit/Loss</div><div class="ds-grid-value ' + plClass + '">' + (s.status === 'completed' ? formatCurrency(st.profit) : '--') + '</div></div>';
+  html += '<div class="ds-grid-item"><div class="ds-grid-label">Duration</div><div class="ds-grid-value">' + durStr + '</div></div>';
+  html += '<div class="ds-grid-item"><div class="ds-grid-label">BB/hr</div><div class="ds-grid-value ' + plClass + '">' + (s.status === 'completed' ? st.bbPerHour : '--') + '</div></div>';
+  html += '<div class="ds-grid-item"><div class="ds-grid-label">Hands</div><div class="ds-grid-value">' + st.handCount + '</div></div>';
+  html += '</div>';
+  // ハンド一覧
+  var hands = loadHandsFromStorage().filter(function(h){ return h.sessionId === sessionId; });
+  if (hands.length > 0) {
+    html += '<div style="margin-top:6px">';
+    html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:4px 0">Hands</div>';
+    for (var i = 0; i < hands.length; i++) {
+      var h = hands[i];
+      html += '<div class="hand-item" id="shi-' + sessionId + '-' + i + '">';
+      html += '<div class="hand-item-header" onclick="toggleSessionHandItem(\'' + sessionId + '\',' + i + ')" style="cursor:pointer">';
+      html += '<span class="hand-title">#' + escapeHtml(h.handNumber || '?') + '</span>';
+      html += '<span class="hand-summary">' + escapeHtml(h.summary || '') + '</span>';
+      html += '<span class="hand-toggle">▶ Open</span>';
+      html += '</div>';
+      html += '<div class="hand-item-body">';
+      html += '<div style="text-align:right;margin-bottom:4px;display:flex;gap:4px;justify-content:flex-end">';
+      html += '<button class="hand-edit-btn" onclick="editHandFromSession(\'' + h.id + '\',\'' + sessionId + '\')">Edit</button>';
+      html += '<button class="hand-edit-btn" style="color:#c0392b;border-color:#c0392b" onclick="deleteHandFromSession(\'' + h.id + '\',\'' + sessionId + '\')">Delete</button>';
+      html += '</div>';
+      // メモテキストをプレビュー生成
+      html += '<pre>' + escapeHtml(generateMemoFromState(h.state)) + '</pre>';
+      html += '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  // ボタン
+  html += '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
+  html += '<button class="new-session-btn" onclick="startNewHandInSession(\'' + sessionId + '\')">+ New Hand</button>';
+  if (hands.length > 0) {
+    html += '<button class="trip-act-btn" onclick="exportSessionHands(\'' + sessionId + '\')">Export</button>';
+  }
+  if (s.status === 'active') {
+    html += '<button class="trip-act-btn" onclick="showAddBuyInModal(\'' + sessionId + '\')">Add Buy-in</button>';
+    html += '<button class="trip-act-btn" onclick="showEndWizSessionModal(\'' + sessionId + '\')">End Session</button>';
+  }
+  html += '</div>';
+  det.innerHTML = html;
+}
+
+function generateMemoFromState(state) {
+  if (!state) return '';
+  var saved = JSON.parse(JSON.stringify(W));
+  Object.assign(W, JSON.parse(JSON.stringify(state)));
+  var text = generateMemoText();
+  Object.assign(W, saved);
+  return text;
+}
+
+/* ========== SESSION HAND OPERATIONS ========== */
+function startNewHandInSession(sessionId) {
+  currentSessionId = sessionId;
+  var s = getWizSession(sessionId);
+  if (s) currentJourneyId = s.journeyId;
+  startNewHand();
+}
+function editHandFromSession(handId, sessionId) {
+  currentSessionId = sessionId;
+  var s = getWizSession(sessionId);
+  if (s) currentJourneyId = s.journeyId;
+  editHand(handId);
+}
+function deleteHandFromSession(handId, sessionId) {
+  var hands = loadHandsFromStorage();
+  hands = hands.filter(function(h){ return h.id !== handId; });
+  saveHandsToStorage(hands);
+  show('Deleted');
+  // re-render session
+  renderSessionExpand(sessionId);
+  // update parent detail height
+  var det = document.getElementById('sessDetail-' + sessionId);
+  if (det) det.style.maxHeight = 'none';
+}
+function exportSessionHands(sessionId) {
+  var hands = loadHandsFromStorage().filter(function(h){ return h.sessionId === sessionId; });
+  if (hands.length === 0) { show('書き出すハンドがありません'); return; }
+  var saved = JSON.parse(JSON.stringify(W));
+  var texts = [];
+  var jsons = [];
+  hands.forEach(function(entry) {
+    if (entry.state) {
+      Object.assign(W, JSON.parse(JSON.stringify(entry.state)));
+      texts.push(generateMemoText());
+      jsons.push(generateHandJson());
+    }
+  });
+  Object.assign(W, saved);
+  var now = new Date();
+  var ts = now.getFullYear() + pad2(now.getMonth()+1) + pad2(now.getDate()) + '_' + pad2(now.getHours()) + pad2(now.getMinutes());
+  downloadFile('hands_' + ts + '.txt', texts.join('\n\n---\n\n'));
+  setTimeout(function(){
+    downloadFile('hands_' + ts + '.json', JSON.stringify(jsons, null, 2));
+  }, 500);
+}
+
 function generateSummary() {
   var hero = W.players.find(function(p){ return p.isHero; });
   var pos = hero ? (hero.position || '') : '';
@@ -2466,6 +3480,7 @@ function saveCurrentHand() {
     editingHandId = id;
     hands.unshift({
       id: id,
+      sessionId: currentSessionId,
       savedAt: new Date().toISOString(),
       handNumber: W.handNumber,
       summary: generateSummary(),
@@ -2532,6 +3547,12 @@ function editHand(id) {
   editingHandId = id;
   handSaved = true; // 既存ハンドなので保存済み状態
   streetState = null;
+  // sessionId復元
+  if (entry.sessionId) {
+    currentSessionId = entry.sessionId;
+    var sess = getWizSession(entry.sessionId);
+    if (sess) currentJourneyId = sess.journeyId;
+  }
 
   showWizard(1);
 }
@@ -2702,14 +3723,16 @@ function confirmSavePlayerSet() {
 
 /* ========== VIEW SWITCH ========== */
 function showHandList() {
+  hideNumpad();
   viewMode = 'list';
   $('listView').style.display = '';
   $('wizardView').style.display = 'none';
   $('playerSetView').style.display = 'none';
-  renderHandList();
+  renderJourneyList();
 }
 
 function showPlayerSetSelect() {
+  hideNumpad();
   viewMode = 'pset';
   $('listView').style.display = 'none';
   $('wizardView').style.display = 'none';
@@ -2801,10 +3824,11 @@ function startWizardFresh() {
 
 function nextHandNumber() {
   var hands = loadHandsFromStorage();
-  if (hands.length === 0) return '01';
-  // 最大ハンド番号+1
+  // currentSessionId内のハンドのみカウント
+  var sessionHands = currentSessionId ? hands.filter(function(h){ return h.sessionId === currentSessionId; }) : hands;
+  if (sessionHands.length === 0) return '01';
   var max = 0;
-  hands.forEach(function(h){
+  sessionHands.forEach(function(h){
     var n = parseInt(h.handNumber, 10) || 0;
     if (n > max) max = n;
   });
@@ -2863,6 +3887,13 @@ function showNumpad(inputEl) {
   }
   numpadTarget = inputEl;
   inputEl.classList.add('numpad-active');
+  // readonlyを解除してカーソル表示、inputmode=noneでソフトキーボード抑制
+  inputEl.removeAttribute('readonly');
+  inputEl.setAttribute('inputmode', 'none');
+  inputEl.focus();
+  // カーソルを末尾に移動
+  var len = inputEl.value.length;
+  inputEl.setSelectionRange(len, len);
   var np = $('numpad');
   if (isDesktop()) {
     // デスクトップ: #numpadWrap内に移動してstatic表示
@@ -2910,14 +3941,18 @@ function hideNumpad() {
   var prev = numpadTarget;
   if (numpadTarget) {
     numpadTarget.classList.remove('numpad-active');
+    numpadTarget.setAttribute('readonly', '');
+    numpadTarget.setAttribute('inputmode', 'numeric');
+    numpadTarget.blur();
     numpadTarget.dispatchEvent(new Event('input', {bubbles:true}));
     numpadTarget = null;
   }
-  // 自動遷移: 次のフィールドにフォーカス+numpad表示
+  // 自動遷移: 次のフィールドにフォーカス+numpad表示（ウィザード表示中のみ）
   if (prev && prev.id && numpadAutoNext[prev.id]) {
     var nextEl = $(numpadAutoNext[prev.id]);
     if (nextEl) {
       setTimeout(function(){
+        if (viewMode !== 'wizard') return;
         nextEl.focus();
         showNumpad(nextEl);
       }, 100);
@@ -2925,17 +3960,31 @@ function hideNumpad() {
   }
 }
 
+function nkCursorMove(dir) {
+  if (!numpadTarget) return;
+  var pos = numpadTarget.selectionStart || 0;
+  var newPos = Math.max(0, Math.min(numpadTarget.value.length, pos + dir));
+  numpadTarget.setSelectionRange(newPos, newPos);
+  numpadTarget.focus();
+}
+
 function nkPress(key) {
   if (!numpadTarget) return;
   var val = numpadTarget.value || '';
+  var pos = numpadTarget.selectionStart != null ? numpadTarget.selectionStart : val.length;
+  var newPos;
   if (key === 'del') {
-    val = val.slice(0, -1);
+    if (pos > 0) {
+      val = val.slice(0, pos - 1) + val.slice(pos);
+      newPos = pos - 1;
+    } else { newPos = 0; }
   } else {
-    if (val === '0') { val = key; }
-    else { val = val + key; }
-    if (val.length > 10) return;
+    if (val.length + key.length > 10) return;
+    val = val.slice(0, pos) + key + val.slice(pos);
+    newPos = pos + key.length;
   }
   numpadTarget.value = val;
+  numpadTarget.setSelectionRange(newPos, newPos);
   numpadTarget.dispatchEvent(new Event('input', {bubbles:true}));
   // スライダーと同期
   var slider = $('amountSlider');
@@ -3175,6 +4224,8 @@ function loadFav(idx) {
 
 /* ========== INIT ========== */
 function init() {
+  loadJourneys();
+  loadWizSessions();
   showHandList();
 }
 

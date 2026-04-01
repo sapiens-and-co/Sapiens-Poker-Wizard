@@ -617,6 +617,12 @@ function getActivePlayers() {
   return W.players.filter(function(p){ return p.active !== false && !W.foldedSeats[p.seat]; });
 }
 
+function getActivePosMap() {
+  var active = W.players.filter(function(p){ return p.active !== false; });
+  var seats = active.map(function(p){ return p.seat; });
+  return assignPositions(active.length, W.btnSeat, seats);
+}
+
 function cardDisplay(c) {
   if (!c || c.length < 2) return '';
   var r = c.charAt(0), s = c.charAt(1);
@@ -1204,7 +1210,7 @@ function initStreetState(streetName) {
 
   // Preflop: SB and BB are already invested
   if (streetName === 'preflop') {
-    var posMap = assignPositions(W.players.length, W.btnSeat, W.players.map(function(p){return p.seat;}));
+    var posMap = getActivePosMap();
     W.players.forEach(function(p){
       if (posMap[p.seat] === 'SB') streetState.investments[p.seat] = W.sb;
       else if (posMap[p.seat] === 'BB') streetState.investments[p.seat] = W.bb;
@@ -1229,7 +1235,7 @@ function initStreetState(streetName) {
 }
 
 function getPreflopOrder(players) {
-  var posMap = assignPositions(W.players.length, W.btnSeat, W.players.map(function(p){return p.seat;}));
+  var posMap = getActivePosMap();
   // UTG acts first preflop, then SB, BB last
   var sorted = players.slice().sort(function(a,b){
     var ai = ((a.seat - W.btnSeat + 10) % 10);
@@ -1467,7 +1473,7 @@ function confirmAmount(actionType) {
 
 function doAction(action, amount) {
   var cp = streetState.order[streetState.currentIdx];
-  var posMap = assignPositions(W.players.length, W.btnSeat, W.players.map(function(p){return p.seat;}));
+  var posMap = getActivePosMap();
 
   var a = {
     seat: cp.seat,
@@ -1772,7 +1778,7 @@ function renderActionPlayerList(streetName) {
       // ブラインド前払い分を初期値に含める（preflop時）
       var blindInv = 0;
       if (streetState && streetState.street === 'preflop') {
-        var posMap = assignPositions(W.players.length, W.btnSeat, W.players.map(function(pl){return pl.seat;}));
+        var posMap = getActivePosMap();
         if (posMap[p.seat] === 'SB') blindInv = W.sb;
         else if (posMap[p.seat] === 'BB') blindInv = W.bb + (W.ante || 0);
       }
@@ -2411,8 +2417,7 @@ function generateMemoText() {
 
 /* ========== GENERATE HAND JSON ========== */
 function generateHandJson() {
-  var posMap = assignPositions(W.players.length, W.btnSeat,
-    W.players.map(function(p){ return p.seat; }));
+  var posMap = getActivePosMap();
   var hero = W.players.find(function(p){ return p.isHero; });
 
   // Showdown cards map

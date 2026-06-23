@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <!--
-  Poker Hand Wizard v0.078
+  Poker Hand Wizard v0.080
   Step-by-step guided hand history input
 -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Poker Hand Wizard v0.078</title>
+<title>Poker Hand Wizard v0.080</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -116,8 +116,9 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
 #s3stack{padding:10px 8px;font-size:15px}
 #s3stack::placeholder,#s1ante::placeholder{font-size:10px}
 #s1sb:focus,#s1bb:focus,#s1ante:focus,#s3stack:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
-.hero-badge,.btn-badge{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--dim);transition:all .15s;flex-shrink:0}
+.hero-badge,.btn-badge,.str-badge{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--dim);transition:all .15s;flex-shrink:0}
 .hero-badge.active,.btn-badge.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.str-badge.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 /* 座席番号トグル */
 .seat-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;transition:all .15s;user-select:none}
 .seat-num.on{background:var(--accent);color:var(--bg)}
@@ -388,7 +389,7 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
   <div class="hero-banner">
     <svg class="hero-mascot" viewBox="4170 4190 300 255" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" fill-rule="evenodd" d="M4418,4326c-5.5.27-10.01,1.7-14-1-6.36-1.99-7.87-6.96-12-11-.16-8.42,1.4-14,3-20,4.79-2.92,10.38-5.41,16-8,.16-11.94,13.49-26.38,28-19,4.8,2.44,7.38,8.27,11,12l-1,13c7.19,3.63,20.4,16.52,11,29-3.58,11.02-16.77,9.99-28,8-.65,1.87-.95,3.91-1,7,7.67,8.05,9.67,12.36,6,26-8.98,4.61-20.35,8.49-31,2-2.75-1.68-5.85-5.92-9-7l-20-1c-.91,1.08.08.08-1,1,7.01,32.42,5.29,83.07-27,84-4.23-4.07-7.92-7.77-12-12,.2-6.54,2.83-6.64,4-10l-1-10c4.37-2.54,15.13-5.89,17-11,.98-4.08-4.09-14.06-6-19-2.89-7.48-4.03-14.6-8-21-4.89-7.89-13.21-15.15-15-26-.42-2.54,2.44-10.29,3-13,1.91-9.19-2.45-16.83-11-17-8.56,7-23.09,13.9-27,25,7.27,4.64,18.53,15.99,21,25,2.84,10.35-3.78,17.12-6,23-4.66,12.38-7.63,26.63-8,42,6.29,2.71,27.96,10.38,30,16,.96,1.42.98,3.27,1,6-12.57,6.15-24.54,1.01-41,1-6.29,0-17.57,1.67-22-1-1.42-.85-1.92-3.75-3-5,1.67-7.07,6.22-11.5,8-17,2.76-8.55-2.49-21.23-4-28-1.28-5.74,2.39-12.6,1-15-1.33-4.27-4-6.34-9-7-1.81,3.87-3.25,10.62-6,14-4.32,5.31-15.32,7.08-22,10-8.31,3.63-13.91,9.27-20,15,2.61,7.71,3.03,13.93,9,18,4.17,2.85,7.89,1.99,10,7,2.45,3.38,1,4.71,0,9h-2c-8.25,5.84-32.18-4-36-9l-6-17c-3.18-4.67-13.5-6.86-11-17,2-8.12,9.41-6.3,16-10l18-19c6.95-4.68,13.33-1.48,14-13-1.33-4-2.67-8-4-12-23.39-41.09,26.84-74.61,49-91,7.61-5.63,13.78-13.93,22-19l16-7h5c4.14-2.08,5.35-10.16,8-14l12-11c7.79-4.78,24.69-5.28,33,0,2.41,1.53,4.54,5.44,7,7,4.8,3.03,8.8,1.22,11,7,1.58,2.48-.63,7.84,1,11l7,5c2.06,4.56,1.3,23.9,0,29-8.76,5.13-17.82,2.5-30,2-2.05,3.24-2.99,4.03-3,10,5.91,9.66-2.71,29.29,1,41,.8,2.52,3.12,4.7,4,8,8.12,4.19,44.71,24.61,53,9,.8-1.18.77-1.68,1-4Z"/></svg>
     <div class="hero-title">Sapiens Poker Wizard</div>
-    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--bg);letter-spacing:.05em">v0.078</span>
+    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--bg);letter-spacing:.05em">v0.080</span>
   </div>
 
   <!-- ジャーニーリスト画面 -->
@@ -568,7 +569,8 @@ var W = {
   foldedSeats: {},
   allInSeats: {},
   handEnded: false,
-  endedAtStreet: null
+  endedAtStreet: null,
+  strSeat: null
 };
 
 var TOTAL_STEPS = 13;
@@ -619,7 +621,10 @@ function getActivePlayers() {
 function getActivePosMap() {
   var active = W.players.filter(function(p){ return p.active !== false; });
   var seats = active.map(function(p){ return p.seat; });
-  return assignPositions(active.length, W.btnSeat, seats);
+  var map = assignPositions(active.length, W.btnSeat, seats);
+  // ストラドルがいる場合、そのシートのポジション名を STR に上書き
+  if (W.strSeat) map[W.strSeat] = 'STR';
+  return map;
 }
 
 function cardDisplay(c) {
@@ -929,6 +934,7 @@ function renderPlayerList() {
   W.players.forEach(function(p, idx){
     var absent = p.active === false;
     var isBtn  = W.btnSeat === p.seat;
+    var isStr  = W.strSeat === p.seat;
     h += '<div class="player-row' + (absent ? ' absent' : '') + '">';
     // ① 席番号がトグルスイッチ兼用
     h += '<div class="seat-num' + (absent ? ' absent-seat' : ' on') + '" onclick="togglePlayerSeat(' + idx + ')" style="cursor:pointer">' + p.seat + '</div>';
@@ -936,6 +942,8 @@ function renderPlayerList() {
     h += '<div class="btn-badge' + (isBtn ? ' active' : '') + '" onclick="' + (absent ? '' : 'setBtnSeat(' + idx + ')') + '" style="' + (absent ? 'visibility:hidden;pointer-events:none' : '') + '">BTN</div>';
     // ④ HERO バッジ（離席時は非表示だがスペース確保）
     h += '<div class="hero-badge' + (p.isHero ? ' active' : '') + '" data-idx="' + idx + '" style="' + (absent ? 'visibility:hidden;pointer-events:none' : '') + '">HERO</div>';
+    // ⑤ STR バッジ（離席時は非表示だがスペース確保）
+    h += '<div class="str-badge' + (isStr ? ' active' : '') + '" onclick="' + (absent ? '' : 'setStrSeat(' + idx + ')') + '" style="' + (absent ? 'visibility:hidden;pointer-events:none' : '') + '">STR</div>';
     // ポジション
     h += '<div class="pos-label">' + (absent ? '' : p.position) + '</div>';
     // 名前入力
@@ -993,6 +1001,8 @@ function togglePlayerSeat(idx) {
   if (!W.players[idx].active) {
     // HERO解除
     if (W.players[idx].isHero) { W.players[idx].isHero = false; W.heroSeat = null; }
+    // STR解除
+    if (W.strSeat === W.players[idx].seat) W.strSeat = null;
     // BTNが離席した場合、最初の着席者に自動移動
     if (W.btnSeat === W.players[idx].seat) {
       var next = W.players.find(function(p){ return p.active !== false && p.seat !== W.players[idx].seat; });
@@ -1005,6 +1015,18 @@ function togglePlayerSeat(idx) {
 
 function setBtnSeat(idx) {
   W.btnSeat = W.players[idx].seat;
+  updatePositions();
+  renderPlayerList();
+}
+
+function setStrSeat(idx) {
+  var seat = W.players[idx].seat;
+  // 同じシートをクリックしたらSTR解除
+  if (W.strSeat === seat) {
+    W.strSeat = null;
+  } else {
+    W.strSeat = seat;
+  }
   updatePositions();
   renderPlayerList();
 }
@@ -1199,20 +1221,22 @@ function initStreetState(streetName) {
     actions: W.streets[streetName].actions.slice(),
     order: order,
     currentIdx: 0,
-    currentBet: (streetName === 'preflop') ? W.bb : 0,
-    lastRaiseSize: (streetName === 'preflop') ? W.bb : 0,
+    currentBet: (streetName === 'preflop') ? (W.strSeat ? W.bb * 2 : W.bb) : 0,
+    lastRaiseSize: (streetName === 'preflop') ? (W.strSeat ? W.bb * 2 : W.bb) : 0,
     investments: {},
     pot: calcCurrentPot(),
     startingPot: calcStartingPot(streetName),
     done: false
   };
 
-  // Preflop: SB and BB are already invested
+  // Preflop: SB and BB (and straddle) are already invested
   if (streetName === 'preflop') {
     var posMap = getActivePosMap();
+    var strAmt = W.strSeat ? W.bb * 2 : 0;
     W.players.forEach(function(p){
       if (posMap[p.seat] === 'SB') streetState.investments[p.seat] = W.sb;
       else if (posMap[p.seat] === 'BB') streetState.investments[p.seat] = W.bb;
+      else if (posMap[p.seat] === 'STR') streetState.investments[p.seat] = strAmt;
       else streetState.investments[p.seat] = 0;
     });
     // Add ante (BB player only)
@@ -1241,18 +1265,18 @@ function getPreflopOrder(players) {
     var bi = ((b.seat - W.btnSeat + 10) % 10);
     return ai - bi;
   });
-  // Rotate: BTN,SB,BB go to end → UTG first
+  // Rotate: BTN,SB,BB,(STR) go to end → UTG/+1 first
   var result = [];
   var prefix = [];
   for (var i = 0; i < sorted.length; i++) {
     var pos = posMap[sorted[i].seat];
-    if ((pos === 'BTN' || pos === 'SB' || pos === 'BB') && W.players.length > 2) {
+    if ((pos === 'BTN' || pos === 'SB' || pos === 'BB' || pos === 'STR') && W.players.length > 2) {
       prefix.push(sorted[i]);
     } else {
       result.push(sorted[i]);
     }
   }
-  // For preflop: UTG...CO, then BTN, SB, BB
+  // For preflop: UTG...CO, then BTN, SB, BB, STR(last)
   result = result.concat(prefix);
   return result;
 }
@@ -1275,8 +1299,9 @@ function calcCurrentPot() {
   var pot = 0;
   // Antes
   pot += W.ante; // BB only
-  // Blinds
+  // Blinds (+ straddle)
   pot += W.sb + W.bb;
+  if (W.strSeat) pot += W.bb * 2;
   // Previous streets
   ['preflop','flop','turn','river'].forEach(function(st){
     W.streets[st].actions.forEach(function(a){
@@ -1780,6 +1805,7 @@ function renderActionPlayerList(streetName) {
         var posMap = getActivePosMap();
         if (posMap[p.seat] === 'SB') blindInv = W.sb;
         else if (posMap[p.seat] === 'BB') blindInv = W.bb + (W.ante || 0);
+        else if (posMap[p.seat] === 'STR') blindInv = W.bb * 2;
       }
       var runningTotal = blindInv;
       var chain = seatActions.map(function(a){
@@ -2296,8 +2322,10 @@ function generateMemoText() {
   lines.push('#' + W.handNumber);
   lines.push('');
 
-  // Blinds
-  lines.push('sb' + W.sb + ' bb' + W.bb + ' ante' + W.ante);
+  // Blinds (+ straddle)
+  var blindLine = 'sb' + W.sb + ' bb' + W.bb + ' ante' + W.ante;
+  if (W.strSeat) blindLine += ' straddle' + (W.bb * 2);
+  lines.push(blindLine);
   lines.push('');
 
   // Hero
@@ -2443,7 +2471,7 @@ function generateHandJson() {
   });
 
   // Build streets with potAfter
-  var pot = W.sb + W.bb + W.ante;
+  var pot = W.sb + W.bb + W.ante + (W.strSeat ? W.bb * 2 : 0);
   var streetNames = ['preflop','flop','turn','river'];
   var streetData = {};
   var fullBoard = [];
@@ -2455,11 +2483,13 @@ function generateHandJson() {
     var inv = {};       // seat → そのストリート内の累積投資額
     var curBet = 0;     // 現在のストリート内最大ベット額
     if (st === 'preflop') {
-      // SB/BBの初期投資を反映
+      // SB/BB/STRの初期投資を反映
+      var strAmt = W.strSeat ? W.bb * 2 : 0;
       players.forEach(function(p){
         var pos = posMap[p.seat];
         if (pos === 'SB') { inv[p.seat] = W.sb; curBet = W.sb; }
         else if (pos === 'BB') { inv[p.seat] = W.bb; if (W.bb > curBet) curBet = W.bb; }
+        else if (pos === 'STR') { inv[p.seat] = strAmt; if (strAmt > curBet) curBet = strAmt; }
       });
     }
     var actions = s.actions.map(function(a){
@@ -2564,6 +2594,7 @@ function generateHandJson() {
     var heroPos = posMap[hero.seat];
     if (heroPos === 'SB') heroInvested += W.sb;
     else if (heroPos === 'BB') heroInvested += W.bb + W.ante;
+    else if (heroPos === 'STR') heroInvested += W.bb * 2;
     streetNames.forEach(function(st){
       var heroStreetInv = 0;
       var maxInv = 0;
@@ -2599,7 +2630,7 @@ function generateHandJson() {
     format: 'poker-hand-history',
     version: '1.0.0',
     exportedAt: new Date().toISOString(),
-    generator: 'Sapiens Poker Hand Wizard v0.078',
+    generator: 'Sapiens Poker Hand Wizard v0.080',
     hand: {
       id: W.handNumber,
       tableSize: W.playerCount,
@@ -3937,6 +3968,7 @@ function resetWizardState() {
   W.playerCount = 9; W.btnSeat = 1;
   W.players = [];
   W.heroSeat = null; W.heroStack = 0; W.skipStack = false; W.heroCards = [];
+  W.strSeat = null;
   W.streets = {
     preflop: { actions: [] },
     flop:    { board: [], actions: [] },

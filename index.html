@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <!--
-  Poker Hand Wizard v0.088
+  Poker Hand Wizard v0.089
   Step-by-step guided hand history input
 -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Poker Hand Wizard v0.088</title>
+<title>Poker Hand Wizard v0.089</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -393,7 +393,7 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
   <div class="hero-banner">
     <svg class="hero-mascot" viewBox="4170 4190 300 255" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" fill-rule="evenodd" d="M4418,4326c-5.5.27-10.01,1.7-14-1-6.36-1.99-7.87-6.96-12-11-.16-8.42,1.4-14,3-20,4.79-2.92,10.38-5.41,16-8,.16-11.94,13.49-26.38,28-19,4.8,2.44,7.38,8.27,11,12l-1,13c7.19,3.63,20.4,16.52,11,29-3.58,11.02-16.77,9.99-28,8-.65,1.87-.95,3.91-1,7,7.67,8.05,9.67,12.36,6,26-8.98,4.61-20.35,8.49-31,2-2.75-1.68-5.85-5.92-9-7l-20-1c-.91,1.08.08.08-1,1,7.01,32.42,5.29,83.07-27,84-4.23-4.07-7.92-7.77-12-12,.2-6.54,2.83-6.64,4-10l-1-10c4.37-2.54,15.13-5.89,17-11,.98-4.08-4.09-14.06-6-19-2.89-7.48-4.03-14.6-8-21-4.89-7.89-13.21-15.15-15-26-.42-2.54,2.44-10.29,3-13,1.91-9.19-2.45-16.83-11-17-8.56,7-23.09,13.9-27,25,7.27,4.64,18.53,15.99,21,25,2.84,10.35-3.78,17.12-6,23-4.66,12.38-7.63,26.63-8,42,6.29,2.71,27.96,10.38,30,16,.96,1.42.98,3.27,1,6-12.57,6.15-24.54,1.01-41,1-6.29,0-17.57,1.67-22-1-1.42-.85-1.92-3.75-3-5,1.67-7.07,6.22-11.5,8-17,2.76-8.55-2.49-21.23-4-28-1.28-5.74,2.39-12.6,1-15-1.33-4.27-4-6.34-9-7-1.81,3.87-3.25,10.62-6,14-4.32,5.31-15.32,7.08-22,10-8.31,3.63-13.91,9.27-20,15,2.61,7.71,3.03,13.93,9,18,4.17,2.85,7.89,1.99,10,7,2.45,3.38,1,4.71,0,9h-2c-8.25,5.84-32.18-4-36-9l-6-17c-3.18-4.67-13.5-6.86-11-17,2-8.12,9.41-6.3,16-10l18-19c6.95-4.68,13.33-1.48,14-13-1.33-4-2.67-8-4-12-23.39-41.09,26.84-74.61,49-91,7.61-5.63,13.78-13.93,22-19l16-7h5c4.14-2.08,5.35-10.16,8-14l12-11c7.79-4.78,24.69-5.28,33,0,2.41,1.53,4.54,5.44,7,7,4.8,3.03,8.8,1.22,11,7,1.58,2.48-.63,7.84,1,11l7,5c2.06,4.56,1.3,23.9,0,29-8.76,5.13-17.82,2.5-30,2-2.05,3.24-2.99,4.03-3,10,5.91,9.66-2.71,29.29,1,41,.8,2.52,3.12,4.7,4,8,8.12,4.19,44.71,24.61,53,9,.8-1.18.77-1.68,1-4Z"/></svg>
     <div class="hero-title">Sapiens Poker Wizard</div>
-    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--bg);letter-spacing:.05em">v0.088</span>
+    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--bg);letter-spacing:.05em">v0.089</span>
   </div>
 
   <!-- ジャーニーリスト画面 -->
@@ -569,6 +569,9 @@ var W = {
   },
   showdowns: [],
   results: [],
+  twice: false,                                // トゥワイス（オールイン後、残りのボードを2本走らせる）
+  boards2: { flop: [], turn: [], river: [] },  // 2本目のボード。オールイン成立ストリートより後だけ使う
+  results2: [],                                // 2本目の勝敗
   usedCards: {},
   foldedSeats: {},
   allInSeats: {},
@@ -730,19 +733,19 @@ function canAdvance(step) {
     case 4:
       return streetState && streetState.done;
     case 5:
-      return W.streets.flop.board.length >= 3;
+      return W.streets.flop.board.length >= 3 && !twiceNeeds('flop', 3);
     case 6:
       return streetState && streetState.street === 'flop' && streetState.done;
     case 7:
-      return W.streets.turn.board.length >= 1;
+      return W.streets.turn.board.length >= 1 && !twiceNeeds('turn', 1);
     case 8:
       return streetState && streetState.street === 'turn' && streetState.done;
     case 9:
-      return W.streets.river.board.length >= 1;
+      return W.streets.river.board.length >= 1 && !twiceNeeds('river', 1);
     case 10:
       return streetState && streetState.street === 'river' && streetState.done;
     case 12:
-      return W.results.length > 0;
+      return W.results.length > 0 && (!twiceActive() || W.results2.length > 0);
     default:
       return true;
   }
@@ -808,21 +811,27 @@ function validateStep(step) {
       return true;
     case 5: // Flop board
       if (W.streets.flop.board.length < 3) { show('ボードカードを選択してください'); return false; }
+      if (twiceNeeds('flop', 3)) { show('2本目のボードカードを選択してください'); return false; }
       W.streets.flop.board.forEach(function(c){ W.usedCards[c] = 'board_flop'; });
+      board2Of('flop').forEach(function(c){ W.usedCards[c] = 'board2_flop'; });
       return true;
     case 6: // Flop actions
       if (!streetState || streetState.street !== 'flop' || !streetState.done) { show('アクションを完了してください'); return false; }
       return true;
     case 7: // Turn board
       if (W.streets.turn.board.length < 1) { show('ボードカードを選択してください'); return false; }
+      if (twiceNeeds('turn', 1)) { show('2本目のボードカードを選択してください'); return false; }
       W.streets.turn.board.forEach(function(c){ W.usedCards[c] = 'board_turn'; });
+      board2Of('turn').forEach(function(c){ W.usedCards[c] = 'board2_turn'; });
       return true;
     case 8: // Turn actions
       if (!streetState || streetState.street !== 'turn' || !streetState.done) { show('アクションを完了してください'); return false; }
       return true;
     case 9: // River board
       if (W.streets.river.board.length < 1) { show('ボードカードを選択してください'); return false; }
+      if (twiceNeeds('river', 1)) { show('2本目のボードカードを選択してください'); return false; }
       W.streets.river.board.forEach(function(c){ W.usedCards[c] = 'board_river'; });
+      board2Of('river').forEach(function(c){ W.usedCards[c] = 'board2_river'; });
       return true;
     case 10: // River actions
       if (!streetState || streetState.street !== 'river' || !streetState.done) { show('アクションを完了してください'); return false; }
@@ -831,6 +840,7 @@ function validateStep(step) {
       return true;
     case 12: // Result
       if (W.results.length === 0) { show('Select winner'); return false; }
+      if (twiceActive() && W.results2.length === 0) { show('2本目の勝敗を選択してください'); return false; }
       return true;
     default:
       return true;
@@ -1970,30 +1980,52 @@ function renderStep10_riverAction() {
   renderStreetActions('river', 'STEP 10: River');
 }
 
+// そのストリートより前のボード。トゥワイスの2本目は自分の系統（2本目）をたどる
+function prevBoardOf(streetName, run) {
+  function b(st){ return (run === 2 && isTwiceStreet(st)) ? board2Of(st) : W.streets[st].board; }
+  if (streetName === 'turn') return b('flop').slice();
+  if (streetName === 'river') return b('flop').concat(b('turn'));
+  return [];
+}
+
 function renderBoardCardSelection(streetName, count, title) {
-  var selected = W.streets[streetName].board.slice();
   var suits = {s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'};
+  var canTwice = isTwiceStreet(streetName);   // オールイン後で、まだ配っていないストリートか
+  var useTwice = canTwice && !!W.twice;
 
-  var h = '<div class="sec"><div class="sec-title">' + title + '</div>';
-
-  // 以前のストリートのボードカードと選択枠を一列で表示
-  var prevBoard = [];
-  if (streetName === 'turn') prevBoard = W.streets.flop.board.slice();
-  if (streetName === 'river') prevBoard = W.streets.flop.board.concat(W.streets.turn.board);
-
-  h += '<div class="selected-cards" style="align-items:center">';
-  if (prevBoard.length > 0) {
-    prevBoard.forEach(function(c) {
-      h += '<div class="board-card ' + cardColor(c) + '">';
-      h += '<span>' + RANK_DISPLAY[c.charAt(0)] + '</span>';
-      h += '<span>' + (suits[c.charAt(1)] || '') + '</span>';
-      h += '</div>';
-    });
-    h += '<div style="width:10px"></div>';
+  var h = '<div class="sec">';
+  h += '<div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">';
+  h += '<span>' + title + '</span>';
+  if (canTwice) {
+    h += '<button class="btn btn-sm' + (W.twice ? ' selected' : '') + '" onclick="toggleTwice()">TWICE</button>';
   }
-  h += '<span id="boardSelected" style="display:flex;gap:6px;align-items:center"></span>';
   h += '</div>';
-  h += '<div id="boardCards"></div>';
+
+  // 1本分の入力枠（run = 1 or 2）
+  function boardRow(run) {
+    var prev = prevBoardOf(streetName, run);
+    var s = '';
+    if (useTwice) {
+      s += '<div style="font-size:10px;font-weight:700;color:var(--dim);margin:4px 0 0">' + (run === 1 ? '1本目' : '2本目') + '</div>';
+    }
+    s += '<div class="selected-cards" style="align-items:center">';
+    if (prev.length > 0) {
+      prev.forEach(function(c) {
+        s += '<div class="board-card ' + cardColor(c) + '">';
+        s += '<span>' + RANK_DISPLAY[c.charAt(0)] + '</span>';
+        s += '<span>' + (suits[c.charAt(1)] || '') + '</span>';
+        s += '</div>';
+      });
+      s += '<div style="width:10px"></div>';
+    }
+    s += '<span id="boardSelected' + run + '" style="display:flex;gap:6px;align-items:center"></span>';
+    s += '</div>';
+    s += '<div id="boardCards' + run + '"></div>';
+    return s;
+  }
+
+  h += boardRow(1);
+  if (useTwice) h += boardRow(2);
 
   // Confirmボタン廃止 — Nextで進む
 
@@ -2001,10 +2033,16 @@ function renderBoardCardSelection(streetName, count, title) {
 
   $('wizardContent').innerHTML = h;
 
-  renderCardSelector('boardCards', 'boardSelected', selected, count, 'board_' + streetName, function(cards){
+  renderCardSelector('boardCards1', 'boardSelected1', W.streets[streetName].board.slice(), count, 'board_' + streetName, function(cards){
     W.streets[streetName].board = cards.slice();
     renderNav();
   });
+  if (useTwice) {
+    renderCardSelector('boardCards2', 'boardSelected2', board2Of(streetName).slice(), count, 'board2_' + streetName, function(cards){
+      W.boards2[streetName] = cards.slice();
+      renderNav();
+    });
+  }
 }
 
 
@@ -2106,8 +2144,8 @@ function evaluateHand(holeCards, boardCards) {
   return best;
 }
 
-function autoJudgeResults() {
-  var board = [].concat(W.streets.flop.board, W.streets.turn.board, W.streets.river.board);
+function autoJudgeResults(boardOverride) {
+  var board = boardOverride || [].concat(W.streets.flop.board, W.streets.turn.board, W.streets.river.board);
   if (board.length < 5) return null; // ボード不完全 → 手動
 
   // Show済みプレイヤーを収集
@@ -2182,6 +2220,56 @@ function getRevealOptions() {
   return opts;
 }
 
+/* ----- TWICE（ランイットトゥワイス） ----- */
+// トゥワイスにできるのは「まだ配っていないカード」だけ＝オールイン成立ストリートより後。
+//   オールインがプリフロップ → flop/turn/river の3ストリート
+//   オールインがフロップ     → turn/river
+//   オールインがターン       → river
+//   オールインがリバー       → 残りが無いので不可（[] を返す）
+function getTwiceStreets() {
+  var run = getRunoutStreet();
+  if (!run) return [];
+  return REVEAL_STREETS.slice(REVEAL_STREETS.indexOf(run) + 1);
+}
+function isTwiceStreet(st) { return getTwiceStreets().indexOf(st) >= 0; }
+function twiceActive() { return !!W.twice && getTwiceStreets().length > 0; }
+function board2Of(st) { return (W.boards2 && W.boards2[st]) ? W.boards2[st] : []; }
+// 2本目のフルボード。トゥワイス対象外のストリート（オールイン前に配り終えた分）は1本目と共有する
+function fullBoard2() {
+  var out = [];
+  ['flop','turn','river'].forEach(function(st){
+    out = out.concat(isTwiceStreet(st) ? board2Of(st) : W.streets[st].board);
+  });
+  return out;
+}
+// そのストリートの2本目が未入力かどうか（Nextのグレーアウト／バリデーション用）
+function twiceNeeds(st, n) { return twiceActive() && isTwiceStreet(st) && board2Of(st).length < n; }
+
+function toggleTwice() {
+  if (W.twice) {
+    // 解除したら2本目のカードを使用済みから外す（他のストリートで選び直せるように）
+    getTwiceStreets().forEach(function(st){
+      board2Of(st).forEach(function(c){ delete W.usedCards[c]; });
+      W.boards2[st] = [];
+    });
+    W.results2 = [];
+    W.twice = false;
+  } else {
+    W.twice = true;
+  }
+  renderStep(W.step);
+  renderNav();
+}
+
+// 勝敗リストから、その席の取り分を返す（win=全額 / chop=人数割 / 無ければ0）
+function shareOfResults(list, seat, amount) {
+  var r = (list || []).find(function(x){ return x.seat === seat; });
+  if (!r) return 0;
+  if (r.result === 'win') return amount;
+  var n = list.filter(function(x){ return x.result === 'chop'; }).length;
+  return n ? Math.floor(amount / n) : amount;
+}
+
 function setShowdownReveal(seat, val) {
   for (var i = 0; i < W.showdowns.length; i++) {
     if (W.showdowns[i].seat !== seat) continue;
@@ -2238,16 +2326,21 @@ function renderStep11_showdown() {
 
   // コミュニティボード表示
   var allBoard = W.streets.flop.board.concat(W.streets.turn.board).concat(W.streets.river.board);
-  if (allBoard.length > 0) {
-    h += '<div style="display:flex;gap:4px;margin:0 0 6px">';
-    allBoard.forEach(function(c) {
-      h += '<div class="board-card ' + cardColor(c) + '">';
-      h += '<span>' + RANK_DISPLAY[c.charAt(0)] + '</span>';
-      h += '<span>' + (suits[c.charAt(1)] || '') + '</span>';
-      h += '</div>';
+  function boardStrip(cards, label) {
+    var s = '';
+    if (label) s += '<div style="font-size:10px;font-weight:700;color:var(--dim);margin:0 0 2px">' + label + '</div>';
+    s += '<div style="display:flex;gap:4px;margin:0 0 6px">';
+    cards.forEach(function(c) {
+      s += '<div class="board-card ' + cardColor(c) + '">';
+      s += '<span>' + RANK_DISPLAY[c.charAt(0)] + '</span>';
+      s += '<span>' + (suits[c.charAt(1)] || '') + '</span>';
+      s += '</div>';
     });
-    h += '</div>';
+    s += '</div>';
+    return s;
   }
+  if (allBoard.length > 0) h += boardStrip(allBoard, twiceActive() ? '1本目' : '');
+  if (twiceActive()) h += boardStrip(fullBoard2(), '2本目');
 
   ordered.forEach(function(p){
     var existing = W.showdowns.find(function(s){ return s.seat === p.seat; });
@@ -2330,105 +2423,126 @@ function setShowdown(seat, type) {
 function renderStep12_result() {
   rederiveFoldsAndAllInsInclusive(W.endedAtStreet || 'river');
   var active = getActivePlayers();
+  var isTwice = twiceActive();
 
   // Auto-detect if only 1 player left
   if (active.length === 1) {
     W.results = [{ seat: active[0].seat, result: 'win' }];
-  }
-
-  // 自動判定を試行
-  var judged = autoJudgeResults();
-  if (judged && W.results.length === 0) {
-    W.results = judged.results;
+    if (isTwice && W.results2.length === 0) W.results2 = [{ seat: active[0].seat, result: 'win' }];
   }
 
   // ボード収集
   var board = [].concat(W.streets.flop.board, W.streets.turn.board, W.streets.river.board);
+  var board2 = isTwice ? fullBoard2() : [];
 
+  // 自動判定を試行（トゥワイスは1本ずつ判定する）
+  var judged = autoJudgeResults(board);
+  if (judged && W.results.length === 0) {
+    W.results = judged.results;
+  }
+  var judged2 = isTwice ? autoJudgeResults(board2) : null;
+  if (judged2 && W.results2.length === 0) {
+    W.results2 = judged2.results;
+  }
+
+  var totalPot = calcCurrentPot();
   var h = '<div class="sec"><div class="sec-title">STEP 12: Result</div>';
-  h += '<div class="pot-display">Final Pot: ' + formatNum(calcCurrentPot()) + '</div>';
+  h += '<div class="pot-display">Final Pot: ' + formatNum(totalPot);
+  if (isTwice) h += ' <span style="font-size:10px">(1本 ' + formatNum(Math.floor(totalPot / 2)) + ')</span>';
+  h += '</div>';
 
-  // コミュニティボード表示
-  if (board.length > 0) {
-    h += '<div style="margin:6px 0 8px"><div style="font-size:10px;font-weight:700;color:var(--dim);margin-bottom:3px">BOARD</div>';
-    h += '<div style="display:flex;gap:3px">';
-    board.forEach(function(c) {
-      h += '<div class="mini-card ' + cardColor(c) + '" style="padding:2px 5px">';
-      h += '<span class="mc-rank">' + RANK_DISPLAY[c.charAt(0)] + '</span>';
-      h += '<span class="mc-suit">' + ({s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'}[c.charAt(1)] || '') + '</span>';
-      h += '</div>';
-    });
-    h += '</div></div>';
-  }
-
-  // 評価マップ作成
-  var evalMap = {};
-  if (judged) {
-    judged.evals.forEach(function(e) { evalMap[e.seat] = e.hand; });
-  }
-
-  active.forEach(function(p){
-    var existing = W.results.find(function(r){ return r.seat === p.seat; });
-    var res = existing ? existing.result : '';
-    var sd = W.showdowns.find(function(s){ return s.seat === p.seat; });
-    var handEval = evalMap[p.seat];
-
-    h += '<div class="result-player">';
-    // プレイヤー情報行
-    h += '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">';
-    h += '<div class="name" style="margin:0">' + p.name + '</div>';
-
-    // ホールカード表示
-    if (sd && sd.type === 'show' && sd.cards && sd.cards.length === 2) {
-      h += '<span class="hero-mini-cards">';
-      sd.cards.forEach(function(c) {
-        h += '<span class="mini-card ' + cardColor(c) + '">';
-        h += '<span class="mc-rank">' + RANK_DISPLAY[c.charAt(0)] + '</span>';
-        h += '<span class="mc-suit">' + ({s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'}[c.charAt(1)] || '') + '</span>';
-        h += '</span>';
+  // 1本分のブロック（run = 1 or 2）
+  function resultBlock(run, runBoard, runJudged, runResults) {
+    var bh = '';
+    // コミュニティボード表示
+    if (runBoard.length > 0) {
+      bh += '<div style="margin:6px 0 8px"><div style="font-size:10px;font-weight:700;color:var(--dim);margin-bottom:3px">BOARD' + (isTwice ? ' — ' + (run === 1 ? '1本目' : '2本目') : '') + '</div>';
+      bh += '<div style="display:flex;gap:3px">';
+      runBoard.forEach(function(c) {
+        bh += '<div class="mini-card ' + cardColor(c) + '" style="padding:2px 5px">';
+        bh += '<span class="mc-rank">' + RANK_DISPLAY[c.charAt(0)] + '</span>';
+        bh += '<span class="mc-suit">' + ({s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'}[c.charAt(1)] || '') + '</span>';
+        bh += '</div>';
       });
-      h += '</span>';
-    } else if (sd && sd.type === 'muck') {
-      h += '<span style="font-size:9px;color:var(--dim)">Muck</span>';
+      bh += '</div></div>';
     }
 
-    // 役名表示
-    if (handEval) {
-      h += '<span style="font-size:10px;font-weight:700;color:var(--accent);margin-left:4px">' + handEval.name + '</span>';
+    // 評価マップ作成
+    var evalMap = {};
+    if (runJudged) {
+      runJudged.evals.forEach(function(e) { evalMap[e.seat] = e.hand; });
     }
-    h += '</div>';
 
-    // Win/Chop ボタン
-    h += '<div style="display:flex;gap:4px;margin-top:2px">';
-    h += '<button class="btn btn-sm' + (res==='win'?' selected':'') + '" onclick="setResult(' + p.seat + ',\'win\')">Win</button>';
-    h += '<button class="btn btn-sm' + (res==='chop'?' selected':'') + '" onclick="setResult(' + p.seat + ',\'chop\')">Chop</button>';
-    h += '</div>';
-    h += '</div>';
-  });
+    active.forEach(function(p){
+      var existing = runResults.find(function(r){ return r.seat === p.seat; });
+      var res = existing ? existing.result : '';
+      var sd = W.showdowns.find(function(s){ return s.seat === p.seat; });
+      var handEval = evalMap[p.seat];
+
+      bh += '<div class="result-player">';
+      // プレイヤー情報行
+      bh += '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">';
+      bh += '<div class="name" style="margin:0">' + p.name + '</div>';
+
+      // ホールカード表示
+      if (sd && sd.type === 'show' && sd.cards && sd.cards.length === 2) {
+        bh += '<span class="hero-mini-cards">';
+        sd.cards.forEach(function(c) {
+          bh += '<span class="mini-card ' + cardColor(c) + '">';
+          bh += '<span class="mc-rank">' + RANK_DISPLAY[c.charAt(0)] + '</span>';
+          bh += '<span class="mc-suit">' + ({s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'}[c.charAt(1)] || '') + '</span>';
+          bh += '</span>';
+        });
+        bh += '</span>';
+      } else if (sd && sd.type === 'muck') {
+        bh += '<span style="font-size:9px;color:var(--dim)">Muck</span>';
+      }
+
+      // 役名表示
+      if (handEval) {
+        bh += '<span style="font-size:10px;font-weight:700;color:var(--accent);margin-left:4px">' + handEval.name + '</span>';
+      }
+      bh += '</div>';
+
+      // Win/Chop ボタン
+      bh += '<div style="display:flex;gap:4px;margin-top:2px">';
+      bh += '<button class="btn btn-sm' + (res==='win'?' selected':'') + '" onclick="setResult(' + p.seat + ',\'win\',' + run + ')">Win</button>';
+      bh += '<button class="btn btn-sm' + (res==='chop'?' selected':'') + '" onclick="setResult(' + p.seat + ',\'chop\',' + run + ')">Chop</button>';
+      bh += '</div>';
+      bh += '</div>';
+    });
+    return bh;
+  }
+
+  h += resultBlock(1, board, judged, W.results);
+  if (isTwice) h += resultBlock(2, board2, judged2, W.results2);
   h += '</div>';
 
   $('wizardContent').innerHTML = h;
 }
 
-function setResult(seat, result) {
+function setResult(seat, result, run) {
+  var list = (run === 2) ? W.results2 : W.results;
   var idx = -1;
-  for (var i = 0; i < W.results.length; i++) {
-    if (W.results[i].seat === seat) { idx = i; break; }
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].seat === seat) { idx = i; break; }
   }
 
   if (result === 'win') {
     // Only one winner - clear others
-    W.results = [{ seat: seat, result: 'win' }];
+    list = [{ seat: seat, result: 'win' }];
   } else {
     // Chop - toggle
     if (idx >= 0) {
-      W.results.splice(idx, 1);
+      list.splice(idx, 1);
     } else {
       // Remove any 'win' entries, add chop
-      W.results = W.results.filter(function(r){ return r.result === 'chop'; });
-      W.results.push({ seat: seat, result: 'chop' });
+      list = list.filter(function(r){ return r.result === 'chop'; });
+      list.push({ seat: seat, result: 'chop' });
     }
   }
+
+  if (run === 2) W.results2 = list; else W.results = list;
 
   renderStep12_result();
   renderNav();
@@ -2634,6 +2748,22 @@ function generateMemoText() {
     });
   }
 
+  // Twice（2本目のボードと勝敗）
+  //   :warning: 現行の poker_converter.py は ---twice を知らないため、section は直前の 'result' のまま進む。
+  //   result セクションのパーサは行頭を int() するので、行頭を必ず数字以外にしておけば全行が読み飛ばされる。
+  //   （だから勝敗は '4 win' ではなく 'result 4 win' の語順にしてある。並びを変えないこと）
+  if (twiceActive()) {
+    lines.push('');
+    lines.push('---twice');
+    getTwiceStreets().forEach(function(st){
+      var b2 = board2Of(st);
+      if (b2.length > 0) lines.push(st + ' ' + b2.map(cardToMemo).join(' '));
+    });
+    W.results2.forEach(function(r){
+      lines.push('result ' + r.seat + ' ' + r.result);
+    });
+  }
+
   return lines.join('\n');
 }
 
@@ -2782,6 +2912,11 @@ function generateHandJson() {
     showdown.push(sdEntry);
   });
 
+  // Twice: ポットは2本で山分けするため、1本あたりの取り分は半分になる
+  var isTwice = twiceActive();
+  var potRun1 = isTwice ? Math.floor(pot / 2) : pot;
+  var potRun2 = isTwice ? (pot - potRun1) : 0;
+
   // Results array
   var results = W.results.map(function(r){
     var p = players.find(function(pl){ return pl.seat === r.seat; });
@@ -2789,9 +2924,30 @@ function generateHandJson() {
       seat: r.seat,
       name: p ? p.name : ('Player' + r.seat),
       result: r.result,
-      amount: pot
+      amount: potRun1
     };
   });
+
+  var twiceOut = null;
+  if (isTwice) {
+    var boards2Out = {};
+    getTwiceStreets().forEach(function(st){ boards2Out[st] = board2Of(st).slice(); });
+    twiceOut = {
+      enabled: true,
+      streets: getTwiceStreets(),
+      boards: boards2Out,
+      board: fullBoard2(),
+      results: W.results2.map(function(r){
+        var p2 = players.find(function(pl){ return pl.seat === r.seat; });
+        return {
+          seat: r.seat,
+          name: p2 ? p2.name : ('Player' + r.seat),
+          result: r.result,
+          amount: potRun2
+        };
+      })
+    };
+  }
 
   // Summary
   var foldedSeats = Object.keys(W.foldedSeats || {}).map(Number);
@@ -2829,21 +2985,19 @@ function generateHandJson() {
       }
       heroInvested += heroStreetInv;
     });
-    if (hr && hr.result === 'win') heroProfit = pot - heroInvested;
-    else if (hr && hr.result === 'chop') {
-      var chopCount = W.results.filter(function(r){ return r.result === 'chop'; }).length;
-      heroProfit = Math.floor(pot / chopCount) - heroInvested;
+    if (isTwice) {
+      // トゥワイスは1本ずつ取り分を出して合算する。
+      // heroResult は「2本とも勝ち = win / 1本だけ = chop（半分戻り）/ 0本 = lose」とする
+      var shareA = shareOfResults(W.results, hero.seat, potRun1);
+      var shareB = shareOfResults(W.results2, hero.seat, potRun2);
+      heroResult = (shareA > 0 && shareB > 0) ? 'win' : ((shareA > 0 || shareB > 0) ? 'chop' : 'lose');
+      heroProfit = shareA + shareB - heroInvested;
     } else {
-      heroProfit = -heroInvested;
+      heroProfit = shareOfResults(W.results, hero.seat, pot) - heroInvested;
     }
   }
 
-  return {
-    format: 'poker-hand-history',
-    version: '1.0.0',
-    exportedAt: new Date().toISOString(),
-    generator: 'Sapiens Poker Hand Wizard v0.088',
-    hand: {
+  var handObj = {
       id: W.handNumber,
       tableSize: W.playerCount,
       blinds: { sb: W.sb, bb: W.bb, ante: W.ante },
@@ -2865,7 +3019,16 @@ function generateHandJson() {
         heroResult: heroResult,
         heroProfit: heroProfit
       }
-    },
+  };
+  // トゥワイスのときだけキーを足す（従来ハンドの出力を1バイトも変えないため）
+  if (twiceOut) handObj.twice = twiceOut;
+
+  return {
+    format: 'poker-hand-history',
+    version: '1.0.0',
+    exportedAt: new Date().toISOString(),
+    generator: 'Sapiens Poker Hand Wizard v0.089',
+    hand: handObj,
     assets: {
       videoPath: W.videoPath || '',
       interfaceBasePath: W.ifbPath || '',
@@ -3947,6 +4110,9 @@ function editHand(id) {
   };
   W.showdowns = snap.showdowns ? JSON.parse(JSON.stringify(snap.showdowns)) : [];
   W.results = snap.results ? JSON.parse(JSON.stringify(snap.results)) : [];
+  W.twice = snap.twice || false;
+  W.boards2 = snap.boards2 ? JSON.parse(JSON.stringify(snap.boards2)) : { flop: [], turn: [], river: [] };
+  W.results2 = snap.results2 ? JSON.parse(JSON.stringify(snap.results2)) : [];
   W.usedCards = snap.usedCards ? JSON.parse(JSON.stringify(snap.usedCards)) : {};
   W.foldedSeats = snap.foldedSeats ? JSON.parse(JSON.stringify(snap.foldedSeats)) : {};
   W.allInSeats = snap.allInSeats ? JSON.parse(JSON.stringify(snap.allInSeats)) : {};
@@ -4210,6 +4376,7 @@ function resetWizardState() {
     river:   { board: [], actions: [] }
   };
   W.showdowns = []; W.results = [];
+  W.twice = false; W.boards2 = { flop: [], turn: [], river: [] }; W.results2 = [];
   W.usedCards = {}; W.foldedSeats = {}; W.allInSeats = {};
   W.handEnded = false; W.endedAtStreet = null;
   streetState = null;

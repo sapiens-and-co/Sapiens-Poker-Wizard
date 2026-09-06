@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <!--
-  Poker Hand Wizard v0.094
+  Poker Hand Wizard v0.095
   Step-by-step guided hand history input
 -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Poker Hand Wizard v0.094</title>
+<title>Poker Hand Wizard v0.095</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -393,7 +393,7 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
   <div class="hero-banner">
     <svg class="hero-mascot" viewBox="4170 4190 300 255" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" fill-rule="evenodd" d="M4418,4326c-5.5.27-10.01,1.7-14-1-6.36-1.99-7.87-6.96-12-11-.16-8.42,1.4-14,3-20,4.79-2.92,10.38-5.41,16-8,.16-11.94,13.49-26.38,28-19,4.8,2.44,7.38,8.27,11,12l-1,13c7.19,3.63,20.4,16.52,11,29-3.58,11.02-16.77,9.99-28,8-.65,1.87-.95,3.91-1,7,7.67,8.05,9.67,12.36,6,26-8.98,4.61-20.35,8.49-31,2-2.75-1.68-5.85-5.92-9-7l-20-1c-.91,1.08.08.08-1,1,7.01,32.42,5.29,83.07-27,84-4.23-4.07-7.92-7.77-12-12,.2-6.54,2.83-6.64,4-10l-1-10c4.37-2.54,15.13-5.89,17-11,.98-4.08-4.09-14.06-6-19-2.89-7.48-4.03-14.6-8-21-4.89-7.89-13.21-15.15-15-26-.42-2.54,2.44-10.29,3-13,1.91-9.19-2.45-16.83-11-17-8.56,7-23.09,13.9-27,25,7.27,4.64,18.53,15.99,21,25,2.84,10.35-3.78,17.12-6,23-4.66,12.38-7.63,26.63-8,42,6.29,2.71,27.96,10.38,30,16,.96,1.42.98,3.27,1,6-12.57,6.15-24.54,1.01-41,1-6.29,0-17.57,1.67-22-1-1.42-.85-1.92-3.75-3-5,1.67-7.07,6.22-11.5,8-17,2.76-8.55-2.49-21.23-4-28-1.28-5.74,2.39-12.6,1-15-1.33-4.27-4-6.34-9-7-1.81,3.87-3.25,10.62-6,14-4.32,5.31-15.32,7.08-22,10-8.31,3.63-13.91,9.27-20,15,2.61,7.71,3.03,13.93,9,18,4.17,2.85,7.89,1.99,10,7,2.45,3.38,1,4.71,0,9h-2c-8.25,5.84-32.18-4-36-9l-6-17c-3.18-4.67-13.5-6.86-11-17,2-8.12,9.41-6.3,16-10l18-19c6.95-4.68,13.33-1.48,14-13-1.33-4-2.67-8-4-12-23.39-41.09,26.84-74.61,49-91,7.61-5.63,13.78-13.93,22-19l16-7h5c4.14-2.08,5.35-10.16,8-14l12-11c7.79-4.78,24.69-5.28,33,0,2.41,1.53,4.54,5.44,7,7,4.8,3.03,8.8,1.22,11,7,1.58,2.48-.63,7.84,1,11l7,5c2.06,4.56,1.3,23.9,0,29-8.76,5.13-17.82,2.5-30,2-2.05,3.24-2.99,4.03-3,10,5.91,9.66-2.71,29.29,1,41,.8,2.52,3.12,4.7,4,8,8.12,4.19,44.71,24.61,53,9,.8-1.18.77-1.68,1-4Z"/></svg>
     <div class="hero-title">Sapiens Poker Wizard</div>
-    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--bg);letter-spacing:.05em">v0.094</span>
+    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--bg);letter-spacing:.05em">v0.095</span>
   </div>
 
   <!-- ジャーニーリスト画面 -->
@@ -742,6 +742,13 @@ function shouldSkipStep(step) {
     var runSt = getRunoutStreet();
     if (runSt && REVEAL_STREETS.indexOf(acSt) > REVEAL_STREETS.indexOf(runSt)) return true;
   }
+  // ★ 残りのボードは1ステップにまとめるので、2つ目以降のボードステップは飛ばす
+  var boardStreetOfStep = {5:'flop', 7:'turn', 9:'river'};
+  var bdSt = boardStreetOfStep[step];
+  if (bdSt) {
+    var ms = mergedBoardStreets();
+    if (ms.length > 1 && ms.indexOf(bdSt) > 0) return true;
+  }
   if (!W.handEnded) return false;
   // Map streets to action steps (board steps are one before)
   // preflop=4, flop_board=5, flop_action=6, turn_board=7, turn_action=8, river_board=9, river_action=10
@@ -766,7 +773,7 @@ function shouldSkipStep(step) {
 function navigateTo(step) {
   hideNumpad();
   syncTwiceBoards();
-  board2Phase = 0;   // ステップを移動したら2本目の入力フェーズは先頭に戻す
+  board2Phase = 0;   // ステップを移動したら2本目の入力フェーズ（0=1本目 / 1=2本目）は先頭に戻す
   W.step = step;
   renderStepBar();
   renderStep(step);
@@ -776,6 +783,10 @@ function navigateTo(step) {
 
 // トーストなしのバリデーション（Nav グレーアウト判定用）
 function canAdvance(step) {
+  // 残りボードの統合ステップ（1本目 / 2本目とも）
+  if (isMergedStep(step)) {
+    return !mergedBoardMissing((twiceActive() && board2Phase > 0) ? 2 : 1);
+  }
   switch(step) {
     case 1:
       return (W.bb > 0) && (W.sb > 0);
@@ -843,21 +854,21 @@ function getPrevStep(current) {
 
 function goNext() {
   if (!validateStep(W.step)) return;
-  // STEP 9 は 1本目のリバー → 2本目の各ストリート、と画面を送ってから次のステップへ
-  if (W.step === 9 && twiceActive() && board2Phase < getTwiceStreets().length) {
-    board2Phase++;
-    renderStep(9); renderNav(); window.scrollTo(0, 0);
+  // 残りボードの統合ステップは、1本目 →（トゥワイスなら）2本目 と画面を送ってから次へ
+  if (isMergedStep(W.step) && twiceActive() && board2Phase < 1) {
+    board2Phase = 1;
+    renderStep(W.step); renderNav(); window.scrollTo(0, 0);
     return;
   }
   var next = getNextStep(W.step);
   if (next <= TOTAL_STEPS) navigateTo(next);
 }
 
-// 「前に戻る」。STEP 9 の2本目入力中は1画面ずつ戻す
+// 「前に戻る」。2本目の入力中は1本目に戻す
 function goPrev() {
-  if (W.step === 9 && board2Phase > 0) {
-    board2Phase--;
-    renderStep(9); renderNav(); window.scrollTo(0, 0);
+  if (isMergedStep(W.step) && board2Phase > 0) {
+    board2Phase = 0;
+    renderStep(W.step); renderNav(); window.scrollTo(0, 0);
     return;
   }
   navigateTo(getPrevStep(W.step));
@@ -865,6 +876,17 @@ function goPrev() {
 
 /* ========== VALIDATION ========== */
 function validateStep(step) {
+  // 残りボードの統合ステップ（1本目 / 2本目とも）
+  if (isMergedStep(step)) {
+    var mRun = (twiceActive() && board2Phase > 0) ? 2 : 1;
+    var mMiss = mergedBoardMissing(mRun);
+    if (mMiss) {
+      show((mRun === 2 ? '2本目の' : '') + TWICE_LABELS[mMiss] + 'のカードを選択してください');
+      return false;
+    }
+    registerMergedBoardCards(mRun);
+    return true;
+  }
   switch(step) {
     case 1:
       if (!W.bb || W.bb <= 0) { show('BB is required'); return false; }
@@ -2073,6 +2095,7 @@ function renderStep4() {
 
 /* ----- STEP 5: Flop Board ----- */
 function renderStep5_board() {
+  if (isMergedStep(5)) { renderMergedBoard(); return; }
   renderBoardCardSelection('flop', 3, stepTitle(5, 'Flop - Board Cards'));
 }
 
@@ -2085,6 +2108,7 @@ function renderStep6_flopAction() {
 
 /* ----- STEP 7: Turn Board ----- */
 function renderStep7_board() {
+  if (isMergedStep(7)) { renderMergedBoard(); return; }
   renderBoardCardSelection('turn', 1, stepTitle(7, 'Turn - Board Card'));
 }
 
@@ -2096,18 +2120,8 @@ function renderStep8_turnAction() {
 }
 
 /* ----- STEP 9: River Board ----- */
-//   トゥワイスのときは、1本目のリバーを入れたあと
-//   そのまま2本目のフロップ→ターン→リバーへ続く（board2Phase で切り替え）
 function renderStep9_board() {
-  if (twiceActive() && board2Phase > 0) {
-    var sts = getTwiceStreets();
-    var st = sts[board2Phase - 1];
-    if (st) {
-      renderBoardCardSelection(st, (st === 'flop') ? 3 : 1,
-        stepTitle(9, '2本目 - ' + TWICE_LABELS[st]), 2);
-      return;
-    }
-  }
+  if (isMergedStep(9)) { renderMergedBoard(); return; }
   renderBoardCardSelection('river', 1, stepTitle(9, 'River - Board Card'));
 }
 
@@ -2124,6 +2138,96 @@ function prevBoardOf(streetName, run) {
   if (streetName === 'turn') return b('flop').slice();
   if (streetName === 'river') return b('flop').concat(b('turn'));
   return [];
+}
+
+// オールイン後の残りボードを1画面でまとめて入力する
+function renderMergedBoard() {
+  var suits = {s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'};
+  var sts = mergedBoardStreets();
+  var step = mergedBoardStep();
+  var run = (twiceActive() && board2Phase > 0) ? 2 : 1;
+
+  var total = 0;
+  for (var i = 0; i < sts.length; i++) total += boardCountOf(sts[i]);
+
+  // 既存の入力を「位置つき」の1本の配列にする（穴が空いても位置がずれないように）
+  var slots = [];
+  for (var si = 0; si < sts.length; si++) {
+    var b = (run === 2) ? board2Of(sts[si]) : W.streets[sts[si]].board;
+    var n = boardCountOf(sts[si]);
+    for (var k = 0; k < n; k++) slots.push(b[k] || null);
+  }
+
+  var name = (sts.length > 1) ? '残りのボード' : (TWICE_LABELS[sts[0]] + ' - Board');
+  var title = stepTitle(step, name);
+  if (twiceActive()) title += (run === 1 ? '（1本目）' : '（2本目）');
+
+  var h = '<div class="sec">';
+  h += '<div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">';
+  h += '<span>' + title + '</span>';
+  if (run === 1) {
+    h += '<button class="btn btn-sm' + (W.twice ? ' selected' : '') + '" onclick="toggleTwice()">TWICE</button>';
+  }
+  h += '</div>';
+
+  // 何をどの順に入れるかの案内
+  var order = [];
+  for (var oi = 0; oi < sts.length; oi++) {
+    order.push(TWICE_LABELS[sts[oi]] + (sts[oi] === 'flop' ? '3枚' : ''));
+  }
+  h += '<div style="font-size:10px;font-weight:700;color:var(--dim);margin:2px 0 0">'
+     + order.join(' → ') + ' の順に選択</div>';
+
+  // 2本目のときは1本目で出たカードを参考表示
+  if (run === 2) {
+    var ref = [];
+    for (var ri = 0; ri < sts.length; ri++) {
+      var rb = W.streets[sts[ri]].board || [];
+      for (var rj = 0; rj < rb.length; rj++) {
+        ref.push(RANK_DISPLAY[rb[rj].charAt(0)] + (suits[rb[rj].charAt(1)] || ''));
+      }
+    }
+    if (ref.length > 0) {
+      h += '<div style="font-size:10px;font-weight:700;color:var(--dim);margin:2px 0 0">1本目: '
+         + ref.join(' ') + '</div>';
+    }
+  }
+
+  // オールインより前に配り終えているボード（フロップでオールインならフロップ）
+  var prev = [];
+  var allStreets = ['flop','turn','river'];
+  for (var pi = 0; pi < allStreets.length; pi++) {
+    if (sts.indexOf(allStreets[pi]) >= 0) break;
+    prev = prev.concat(W.streets[allStreets[pi]].board || []);
+  }
+
+  h += '<div class="selected-cards" style="align-items:center;flex-wrap:wrap">';
+  for (var pc = 0; pc < prev.length; pc++) {
+    h += '<div class="board-card ' + cardColor(prev[pc]) + '">';
+    h += '<span>' + RANK_DISPLAY[prev[pc].charAt(0)] + '</span>';
+    h += '<span>' + (suits[prev[pc].charAt(1)] || '') + '</span>';
+    h += '</div>';
+  }
+  if (prev.length > 0) h += '<div style="width:10px"></div>';
+  h += '<span id="boardSelected" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"></span>';
+  h += '</div>';
+  h += '<div id="boardCards"></div>';
+  h += '</div>';
+
+  $('wizardContent').innerHTML = h;
+
+  // slots は renderCardSelector 側で位置ごとに書き換わるので、位置でストリートに切り分ける
+  renderCardSelector('boardCards', 'boardSelected', slots, total,
+    (run === 2 ? 'board2_merged' : 'board_merged'), function(){
+      var idx = 0;
+      for (var ci = 0; ci < sts.length; ci++) {
+        var st = sts[ci], n = boardCountOf(st), arr = [];
+        for (var cj = 0; cj < n; cj++) { if (slots[idx + cj]) arr.push(slots[idx + cj]); }
+        if (run === 2) W.boards2[st] = arr; else W.streets[st].board = arr;
+        idx += n;
+      }
+      renderNav();
+    });
 }
 
 // run: 1 = 1本目 / 2 = トゥワイスの2本目（省略時は1）
@@ -2323,10 +2427,19 @@ function autoJudgeResults(boardOverride) {
 //   （preflop→flop / flop→turn / turn→river / river→result）。
 //   変換は書き出し側の1箇所だけで行い、Wizard 内部ではこの4値のまま扱うこと。
 var REVEAL_STREETS = ['preflop','flop','turn','river'];
-// 'allin' だけはストリートではなく **オールインが成立したアクションそのもの**を指す。
-// 'preflop'（フロップ前）はプリフロップのアクションが全部終わってポットが確定してからの公開で、
-// 'allin' はそれより早い「オールインが決まった瞬間」。ボードの見え方は同じでもタイミングが違う。
-var REVEAL_LABELS = { allin:'オールイン直後', preflop:'フロップ前', flop:'フロップ後', turn:'ターン後', river:'リバー後' };
+var REVEAL_LABELS = { preflop:'フロップ前', flop:'フロップ後', turn:'ターン後', river:'リバー後' };
+
+// :warning: v0.092〜v0.094 には 'allin'（オールイン直後）という選択肢があったが v0.095 で廃止した。
+//   'allin' と「そのストリートの公開」は **見えているボードも役の判定も同一**で、
+//   AE 上で貼られる時刻が 150フレーム（約5秒）違うだけだったため、選択肢を分ける価値が無いと判断した。
+//   - `poker_converter.py` / `poker_builder.jsx` 側の `@allin` / `showdown_timing='allin'` の
+//     処理は残してある（手書きメモでは引き続き使える）。**Wizard からは出さない**だけ
+//   - 旧版で保存したハンドの `revealAt:'allin'` は normalizeRevealAt() で
+//     オールイン成立ストリートの値に読み替える
+function normalizeRevealAt(v) {
+  if (v === 'allin') return getRunoutStreet() || '';
+  return v || '';
+}
 
 // オールインが成立した（＝以降アクション不要になった）最初のストリートを返す。無ければ null。
 // 判定条件は setupStreetState 内の「オールインラン」と同じにすること。
@@ -2352,8 +2465,7 @@ function getRunoutStreet() {
 function getRevealOptions() {
   var run = getRunoutStreet();
   if (!run) return [];
-  // 「オールイン直後」はどのストリートでオールインしても選べる（いちばん早い時点）
-  var opts = ['allin'];
+  var opts = [];
   // ★ ボードが入力済みかどうかで絞らないこと。
   //   ショーダウンのステップはオールインの直後（ボード入力より前）に来るため、
   //   ここで絞ると「フロップ後」以降が選べなくなる。
@@ -2443,6 +2555,45 @@ function syncTwiceBoards() {
     b2.forEach(function(c){ delete W.usedCards[c]; });
     W.boards2[st] = [];
   });
+}
+
+// ---- オールイン後の「残りのボード」をまとめて入力するステップ ----
+// アクションが飛ぶストリート（= オールイン成立より後）のボードは、
+// 1画面でまとめて入力する。フロップ3枚＋ターン＋リバー なら5枚を一列で。
+function mergedBoardStreets() {
+  var run = getRunoutStreet();
+  if (!run) return [];
+  return REVEAL_STREETS.slice(REVEAL_STREETS.indexOf(run) + 1);
+}
+// まとめ入力を担当するステップ番号（残りの最初のストリートのボードステップ）
+function mergedBoardStep() {
+  var sts = mergedBoardStreets();
+  if (sts.length === 0) return -1;
+  return {flop:5, turn:7, river:9}[sts[0]];
+}
+function isMergedStep(step) {
+  var sts = mergedBoardStreets();
+  return sts.length > 0 && step === mergedBoardStep();
+}
+function boardCountOf(st) { return (st === 'flop') ? 3 : 1; }
+// 未入力のストリートを返す（無ければ null）
+function mergedBoardMissing(run) {
+  var sts = mergedBoardStreets();
+  for (var i = 0; i < sts.length; i++) {
+    var b = (run === 2) ? board2Of(sts[i]) : W.streets[sts[i]].board;
+    if ((b || []).length < boardCountOf(sts[i])) return sts[i];
+  }
+  return null;
+}
+function registerMergedBoardCards(run) {
+  var sts = mergedBoardStreets();
+  for (var i = 0; i < sts.length; i++) {
+    var st = sts[i];
+    var b = (run === 2) ? board2Of(st) : W.streets[st].board;
+    for (var j = 0; j < b.length; j++) {
+      W.usedCards[b[j]] = (run === 2 ? 'board2_' : 'board_') + st;
+    }
+  }
 }
 
 function setShowdownReveal(seat, val) {
@@ -2540,7 +2691,7 @@ function renderStep11_showdown() {
     //   「開ける瞬間」が映像に存在せず、指定しても動画は変わらないため
     //   （poker_converter.py / poker_builder.jsx はどちらもヒーローのショーダウンを読み飛ばす）
     if (sdType === 'show' && !p.isHero && revealOpts.length >= 2) {
-      var rv = (existing && existing.revealAt) ? existing.revealAt : '';
+      var rv = (existing && existing.revealAt) ? normalizeRevealAt(existing.revealAt) : '';
       h += '<div class="sd-buttons" style="flex-wrap:wrap;align-items:center">';
       h += '<span style="font-size:10px;font-weight:700;color:var(--dim);margin-right:2px">公開</span>';
       h += '<button class="btn btn-sm' + (rv===''?' selected':'') + '" onclick="setShowdownReveal(' + p.seat + ',\'\')">自動</button>';
@@ -2907,7 +3058,8 @@ function generateMemoText() {
       // ★ ヒーローには付けない。STEP 11 で指定できない値をファイルに残さないため
       //   （旧バージョンで保存したハンドに revealAt が残っていても、ここで落とす）
       var isHeroSd = (sd.seat === W.heroSeat);
-      var tag = (sd.type === 'show' && sd.revealAt && !isHeroSd) ? ' @' + sd.revealAt : '';
+      var sdReveal = normalizeRevealAt(sd.revealAt);
+      var tag = (sd.type === 'show' && sdReveal && !isHeroSd) ? ' @' + sdReveal : '';
       if (sd.type === 'show') {
         if (sd.cards && sd.cards.length === 2) {
           lines.push(sd.seat + ' ' + cardToMemo(sd.cards[0]) + ' ' + cardToMemo(sd.cards[1]) + tag);
@@ -3089,7 +3241,8 @@ function generateHandJson() {
       holeCards: (sd.type === 'show' && sd.cards) ? sd.cards.slice() : []
     };
     // 公開時点（0枚=preflop / 3枚=flop / 4枚=turn / 5枚=river）。未設定なら出力しない＝下流の自動判定。
-    if (sd.type === 'show' && sd.revealAt) sdEntry.revealAt = sd.revealAt;
+    var sdEntryReveal = normalizeRevealAt(sd.revealAt);
+    if (sd.type === 'show' && sdEntryReveal) sdEntry.revealAt = sdEntryReveal;
     showdown.push(sdEntry);
   });
 
@@ -3208,7 +3361,7 @@ function generateHandJson() {
     format: 'poker-hand-history',
     version: '1.0.0',
     exportedAt: new Date().toISOString(),
-    generator: 'Sapiens Poker Hand Wizard v0.094',
+    generator: 'Sapiens Poker Hand Wizard v0.095',
     hand: handObj,
     assets: {
       videoPath: W.videoPath || '',

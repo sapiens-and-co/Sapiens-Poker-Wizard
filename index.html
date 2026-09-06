@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <!--
-  Poker Hand Wizard v0.092
+  Poker Hand Wizard v0.093
   Step-by-step guided hand history input
 -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Poker Hand Wizard v0.092</title>
+<title>Poker Hand Wizard v0.093</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -393,7 +393,7 @@ body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;backgr
   <div class="hero-banner">
     <svg class="hero-mascot" viewBox="4170 4190 300 255" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" fill-rule="evenodd" d="M4418,4326c-5.5.27-10.01,1.7-14-1-6.36-1.99-7.87-6.96-12-11-.16-8.42,1.4-14,3-20,4.79-2.92,10.38-5.41,16-8,.16-11.94,13.49-26.38,28-19,4.8,2.44,7.38,8.27,11,12l-1,13c7.19,3.63,20.4,16.52,11,29-3.58,11.02-16.77,9.99-28,8-.65,1.87-.95,3.91-1,7,7.67,8.05,9.67,12.36,6,26-8.98,4.61-20.35,8.49-31,2-2.75-1.68-5.85-5.92-9-7l-20-1c-.91,1.08.08.08-1,1,7.01,32.42,5.29,83.07-27,84-4.23-4.07-7.92-7.77-12-12,.2-6.54,2.83-6.64,4-10l-1-10c4.37-2.54,15.13-5.89,17-11,.98-4.08-4.09-14.06-6-19-2.89-7.48-4.03-14.6-8-21-4.89-7.89-13.21-15.15-15-26-.42-2.54,2.44-10.29,3-13,1.91-9.19-2.45-16.83-11-17-8.56,7-23.09,13.9-27,25,7.27,4.64,18.53,15.99,21,25,2.84,10.35-3.78,17.12-6,23-4.66,12.38-7.63,26.63-8,42,6.29,2.71,27.96,10.38,30,16,.96,1.42.98,3.27,1,6-12.57,6.15-24.54,1.01-41,1-6.29,0-17.57,1.67-22-1-1.42-.85-1.92-3.75-3-5,1.67-7.07,6.22-11.5,8-17,2.76-8.55-2.49-21.23-4-28-1.28-5.74,2.39-12.6,1-15-1.33-4.27-4-6.34-9-7-1.81,3.87-3.25,10.62-6,14-4.32,5.31-15.32,7.08-22,10-8.31,3.63-13.91,9.27-20,15,2.61,7.71,3.03,13.93,9,18,4.17,2.85,7.89,1.99,10,7,2.45,3.38,1,4.71,0,9h-2c-8.25,5.84-32.18-4-36-9l-6-17c-3.18-4.67-13.5-6.86-11-17,2-8.12,9.41-6.3,16-10l18-19c6.95-4.68,13.33-1.48,14-13-1.33-4-2.67-8-4-12-23.39-41.09,26.84-74.61,49-91,7.61-5.63,13.78-13.93,22-19l16-7h5c4.14-2.08,5.35-10.16,8-14l12-11c7.79-4.78,24.69-5.28,33,0,2.41,1.53,4.54,5.44,7,7,4.8,3.03,8.8,1.22,11,7,1.58,2.48-.63,7.84,1,11l7,5c2.06,4.56,1.3,23.9,0,29-8.76,5.13-17.82,2.5-30,2-2.05,3.24-2.99,4.03-3,10,5.91,9.66-2.71,29.29,1,41,.8,2.52,3.12,4.7,4,8,8.12,4.19,44.71,24.61,53,9,.8-1.18.77-1.68,1-4Z"/></svg>
     <div class="hero-title">Sapiens Poker Wizard</div>
-    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--bg);letter-spacing:.05em">v0.092</span>
+    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--bg);letter-spacing:.05em">v0.093</span>
   </div>
 
   <!-- ジャーニーリスト画面 -->
@@ -665,30 +665,83 @@ function cardToMemo(c) {
 }
 
 /* ========== STEP BAR ========== */
+// ステップ番号(1..13)は「識別子」であって並び順ではない。
+// 実際にたどる順番は getStepOrder() が決める。
+//   - オールインが成立したハンドでは、ショーダウン(11)を
+//     **オールインが決まった直後**（そのストリートのアクションステップの次）に差し込む。
+//     例: プリフロップでオールイン → 1,2,3,4,[11],5,7,9,12,13
+//   - オールインが無いハンドは従来どおり 1..13 の順
+// :warning: ステップ番号そのものを振り直すと renderStep / validateStep / canAdvance の
+//   case 番号が全部ずれるので、**番号は変えずに順番だけ変える**こと。
+//   画面に出す番号は visibleSteps() の中での位置（stepNo）を使う。
+function getStepOrder() {
+  var base = [1,2,3,4,5,6,7,8,9,10,11,12,13];
+  var run = getRunoutStreet();
+  if (!run) return base;
+  var actionStep = {preflop:4, flop:6, turn:8, river:10}[run];
+  if (actionStep === undefined) return base;
+  var out = [];
+  for (var i = 0; i < base.length; i++) {
+    var st = base[i];
+    if (st === 11) continue;          // いったん外して
+    out.push(st);
+    if (st === actionStep) out.push(11);  // オールイン成立の直後に差し込む
+  }
+  return out;
+}
+
+// 実際に表示されるステップだけを順番に並べたもの
+function visibleSteps() {
+  var o = getStepOrder(), out = [];
+  for (var i = 0; i < o.length; i++) if (!shouldSkipStep(o[i])) out.push(o[i]);
+  return out;
+}
+
+// 画面に出す通し番号（スキップされたステップは数えない）
+function stepNo(step) {
+  var v = visibleSteps(), i = v.indexOf(step);
+  return (i < 0) ? step : (i + 1);
+}
+function stepTitle(step, name) { return 'STEP ' + stepNo(step) + ': ' + name; }
+function streetActionTitle(street) {
+  var m = {preflop:[4,'Preflop'], flop:[6,'Flop'], turn:[8,'Turn'], river:[10,'River']}[street];
+  return m ? stepTitle(m[0], m[1]) : '';
+}
+
 function renderStepBar() {
   var isEdit = !!editingHandId;
+  var v = visibleSteps();
+  var curPos = v.indexOf(W.step);
   var html = '';
-  for (var i = 1; i <= TOTAL_STEPS; i++) {
-    if (i > 1) html += '<div class="step-line"></div>';
+  for (var i = 0; i < v.length; i++) {
+    if (i > 0) html += '<div class="step-line"></div>';
     var cls = 'step-dot';
-    if (i === W.step) cls += ' active';
-    else if (i < W.step) cls += ' done';
+    if (v[i] === W.step) cls += ' active';
+    else if (curPos >= 0 && i < curPos) cls += ' done';
     else if (isEdit) cls += ' editable';
-    if (shouldSkipStep(i)) cls += ' skip';
-    html += '<div class="' + cls + '" data-step="' + i + '">' + i + '</div>';
+    html += '<div class="' + cls + '" data-step="' + v[i] + '" data-pos="' + i + '">' + (i + 1) + '</div>';
   }
   $('stepBar').innerHTML = html;
   var dots = $('stepBar').querySelectorAll('.step-dot');
   for (var j = 0; j < dots.length; j++) {
     dots[j].addEventListener('click', function(){
       var s = parseInt(this.getAttribute('data-step'));
+      var p = parseInt(this.getAttribute('data-pos'));
       if (shouldSkipStep(s)) return;
-      if (isEdit || s < W.step) navigateTo(s);
+      if (isEdit || p < curPos) navigateTo(s);
     });
   }
 }
 
 function shouldSkipStep(step) {
+  // ★ オールイン後で誰もアクションできないストリートのアクションステップは飛ばす。
+  //   オールインが成立したストリート自身にはアクションがあるので飛ばさない。
+  var actionStreetOfStep = {6:'flop', 8:'turn', 10:'river'};
+  var acSt = actionStreetOfStep[step];
+  if (acSt) {
+    var runSt = getRunoutStreet();
+    if (runSt && REVEAL_STREETS.indexOf(acSt) > REVEAL_STREETS.indexOf(runSt)) return true;
+  }
   if (!W.handEnded) return false;
   // Map streets to action steps (board steps are one before)
   // preflop=4, flop_board=5, flop_action=6, turn_board=7, turn_action=8, river_board=9, river_action=10
@@ -778,15 +831,14 @@ function renderNav() {
 }
 
 function getNextStep(current) {
-  var next = current + 1;
-  while (next <= TOTAL_STEPS && shouldSkipStep(next)) next++;
-  return next;
+  var v = visibleSteps(), i = v.indexOf(current);
+  if (i < 0) return TOTAL_STEPS + 1;
+  return (i + 1 < v.length) ? v[i + 1] : (TOTAL_STEPS + 1);
 }
 
 function getPrevStep(current) {
-  var prev = current - 1;
-  while (prev >= 1 && shouldSkipStep(prev)) prev--;
-  return prev;
+  var v = visibleSteps(), i = v.indexOf(current);
+  return (i <= 0) ? current : v[i - 1];
 }
 
 function goNext() {
@@ -886,7 +938,7 @@ function renderStep(step) {
 
 /* ----- STEP 1: Basic Info ----- */
 function renderStep1() {
-  var h = '<div class="sec"><div class="sec-title">STEP 1: Basic Info</div>';
+  var h = '<div class="sec"><div class="sec-title">' + stepTitle(1, 'Basic Info') + '</div>';
   h += '<div class="row"><label>Hand #</label><input type="text" id="s1hand" value="' + W.handNumber + '"></div>';
   h += '<div class="row"><label>SB</label><input type="text" inputmode="numeric" readonly id="s1sb" value="' + (W.sb||'') + '" placeholder="例 100" onclick="showNumpad(this)"></div>';
   h += '<div class="row"><label>BB</label><input type="text" inputmode="numeric" readonly id="s1bb" value="' + (W.bb||'') + '" placeholder="例 200" onclick="showNumpad(this)"></div>';
@@ -931,7 +983,7 @@ function saveStep1() {
 function renderStep2() {
   // BTN Seat セレクターを廃止、プレイヤー行に統合
   var h = '<div class="sec">';
-  h += '<div class="sec-title">STEP 2: Table Setup';
+  h += '<div class="sec-title">' + stepTitle(2, 'Table Setup');
   h += '<span style="float:right;font-size:10px;font-weight:400;color:var(--dim)">着席状況・BTN・HERO を行内で選択</span>';
   h += '</div>';
   h += '<div id="playerList"></div>';
@@ -1139,7 +1191,7 @@ function renderStep3() {
   var hero = W.players.find(function(p){ return p.isHero; });
   var heroName = hero ? hero.name : 'Hero';
 
-  var h = '<div class="sec"><div class="sec-title">STEP 3: Hero Info (' + heroName + ')</div>';
+  var h = '<div class="sec"><div class="sec-title">' + stepTitle(3, 'Hero Info (' + heroName + ')') + '</div>';
   h += '</div>';
 
   h += '<div class="sec"><div class="sec-title">Hero Cards</div>';
@@ -1695,8 +1747,7 @@ function doAction(action, amount) {
   }
 
   // Re-render
-  var labelMap = {preflop:'STEP 4: Preflop',flop:'STEP 6: Flop',turn:'STEP 8: Turn',river:'STEP 10: River'};
-  renderStreetActions(streetState.street, labelMap[streetState.street]);
+  renderStreetActions(streetState.street, streetActionTitle(streetState.street));
 }
 
 function requeuePlayers(raiseSeat) {
@@ -1776,8 +1827,7 @@ function editPlayerAction(seat) {
   streetState.done = false;
   autoReplayQueue = afterActions;
 
-  var labelMap = {preflop:'STEP 4: Preflop',flop:'STEP 6: Flop',turn:'STEP 8: Turn',river:'STEP 10: River'};
-  renderStreetActions(streetName, labelMap[streetName]);
+  renderStreetActions(streetName, streetActionTitle(streetName));
 }
 
 /* 編集後に後続アクションを自動再生（Call額は自動修正）*/
@@ -1804,8 +1854,7 @@ function autoReplayActions(queue) {
     doAction(a.action, amt);
   }
   silentReplay = false;
-  var labelMap = {preflop:'STEP 4: Preflop',flop:'STEP 6: Flop',turn:'STEP 8: Turn',river:'STEP 10: River'};
-  renderStreetActions(streetState.street, labelMap[streetState.street]);
+  renderStreetActions(streetState.street, streetActionTitle(streetState.street));
 }
 
 function checkHandEnded(streetName) {
@@ -1829,8 +1878,7 @@ function resetStreet(streetName) {
   rederiveFoldsAndAllIns(streetName);
   W.handEnded = false;
   W.endedAtStreet = null;
-  var labelMap = {preflop:'STEP 4: Preflop',flop:'STEP 6: Flop',turn:'STEP 8: Turn',river:'STEP 10: River'};
-  renderStreetActions(streetName, labelMap[streetName]);
+  renderStreetActions(streetName, streetActionTitle(streetName));
 }
 
 function rederiveFoldsAndAllIns(upToStreet) {
@@ -1979,31 +2027,31 @@ function renderStep4() {
   // Re-derive state from scratch for preflop
   W.foldedSeats = {};
   W.allInSeats = {};
-  renderStreetActions('preflop', 'STEP 4: Preflop');
+  renderStreetActions('preflop', streetActionTitle('preflop'));
 }
 
 /* ----- STEP 5: Flop Board ----- */
 function renderStep5_board() {
-  renderBoardCardSelection('flop', 3, 'STEP 5: Flop - Board Cards');
+  renderBoardCardSelection('flop', 3, stepTitle(5, 'Flop - Board Cards'));
 }
 
 /* ----- STEP 6: Flop Actions ----- */
 function renderStep6_flopAction() {
   streetState = null;
   rederiveFoldsAndAllIns('flop');
-  renderStreetActions('flop', 'STEP 6: Flop');
+  renderStreetActions('flop', streetActionTitle('flop'));
 }
 
 /* ----- STEP 7: Turn Board ----- */
 function renderStep7_board() {
-  renderBoardCardSelection('turn', 1, 'STEP 7: Turn - Board Card');
+  renderBoardCardSelection('turn', 1, stepTitle(7, 'Turn - Board Card'));
 }
 
 /* ----- STEP 8: Turn Actions ----- */
 function renderStep8_turnAction() {
   streetState = null;
   rederiveFoldsAndAllIns('turn');
-  renderStreetActions('turn', 'STEP 8: Turn');
+  renderStreetActions('turn', streetActionTitle('turn'));
 }
 
 /* ----- STEP 9: River Board ----- */
@@ -2015,18 +2063,18 @@ function renderStep9_board() {
     var st = sts[board2Phase - 1];
     if (st) {
       renderBoardCardSelection(st, (st === 'flop') ? 3 : 1,
-        'STEP 9: 2本目 - ' + TWICE_LABELS[st], 2);
+        stepTitle(9, '2本目 - ' + TWICE_LABELS[st]), 2);
       return;
     }
   }
-  renderBoardCardSelection('river', 1, 'STEP 9: River - Board Card');
+  renderBoardCardSelection('river', 1, stepTitle(9, 'River - Board Card'));
 }
 
 /* ----- STEP 10: River Actions ----- */
 function renderStep10_riverAction() {
   streetState = null;
   rederiveFoldsAndAllIns('river');
-  renderStreetActions('river', 'STEP 10: River');
+  renderStreetActions('river', streetActionTitle('river'));
 }
 
 // そのストリートより前のボード。トゥワイスの2本目は自分の系統（2本目）をたどる
@@ -2265,10 +2313,12 @@ function getRevealOptions() {
   if (!run) return [];
   // 「オールイン直後」はどのストリートでオールインしても選べる（いちばん早い時点）
   var opts = ['allin'];
+  // ★ ボードが入力済みかどうかで絞らないこと。
+  //   ショーダウンのステップはオールインの直後（ボード入力より前）に来るため、
+  //   ここで絞ると「フロップ後」以降が選べなくなる。
+  //   オールインが成立していれば残りのボードは必ず配られるので、以降のストリートは全部出してよい。
   for (var i = REVEAL_STREETS.indexOf(run); i < REVEAL_STREETS.length; i++) {
-    var st = REVEAL_STREETS[i];
-    if (st === 'preflop') { opts.push(st); continue; }
-    if ((W.streets[st].board || []).length > 0) opts.push(st);
+    opts.push(REVEAL_STREETS[i]);
   }
   return opts;
 }
@@ -2397,7 +2447,7 @@ function renderStep11_showdown() {
   var active = getActivePlayers();
   if (active.length <= 1) {
     // No showdown needed
-    var h = '<div class="sec"><div class="sec-title">STEP 11: Showdown</div>';
+    var h = '<div class="sec"><div class="sec-title">' + stepTitle(11, 'Showdown') + '</div>';
     h += '<div style="text-align:center;padding:20px;font-size:12px">No showdown (hand ended)</div></div>';
     $('wizardContent').innerHTML = h;
     return;
@@ -2406,7 +2456,7 @@ function renderStep11_showdown() {
   var ordered = getShowdownOrder(active);
   var revealOpts = getRevealOptions();
   var suits = {s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'};
-  var h = '<div class="sec"><div class="sec-title">STEP 11: Showdown</div>';
+  var h = '<div class="sec"><div class="sec-title">' + stepTitle(11, 'Showdown') + '</div>';
 
   // コミュニティボード表示
   var allBoard = W.streets.flop.board.concat(W.streets.turn.board).concat(W.streets.river.board);
@@ -2533,7 +2583,7 @@ function renderStep12_result() {
   }
 
   var totalPot = calcCurrentPot();
-  var h = '<div class="sec"><div class="sec-title">STEP 12: Result</div>';
+  var h = '<div class="sec"><div class="sec-title">' + stepTitle(12, 'Result') + '</div>';
   h += '<div class="pot-display">Final Pot: ' + formatNum(totalPot);
   if (isTwice) h += ' <span style="font-size:10px">(1本 ' + formatNum(Math.floor(totalPot / 2)) + ')</span>';
   h += '</div>';
@@ -2639,7 +2689,7 @@ function setResult(seat, result, run) {
 function renderStep13_summary() {
   var memoText = generateMemoText();
 
-  var h = '<div class="sec"><div class="sec-title">STEP 13: Preview & Export</div>';
+  var h = '<div class="sec"><div class="sec-title">' + stepTitle(13, 'Preview & Export') + '</div>';
 
   // 保存バー
   h += '<div class="save-bar">';
@@ -3117,7 +3167,7 @@ function generateHandJson() {
     format: 'poker-hand-history',
     version: '1.0.0',
     exportedAt: new Date().toISOString(),
-    generator: 'Sapiens Poker Hand Wizard v0.092',
+    generator: 'Sapiens Poker Hand Wizard v0.093',
     hand: handObj,
     assets: {
       videoPath: W.videoPath || '',

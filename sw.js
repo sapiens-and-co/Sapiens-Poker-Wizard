@@ -1,5 +1,5 @@
 // Service Worker for Sapiens Poker Wizard PWA
-const CACHE_NAME = 'sapiens-poker-wizard-v0092';
+const CACHE_NAME = 'sapiens-poker-wizard-v0093';
 const ASSETS = [
   './',
   './index.html',
